@@ -1,13 +1,10 @@
 import random
+from datetime import date
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from app.utils.decorators import student_required
 from app.utils.validation import validate_wellness_input
 from app.services.wellness import get_today_record, log_daily_wellness
 from app.services.gamification import calculate_current_streak, check_and_award_achievements
-from app.services.journal import (
-    get_user_journal_entries, get_journal_entry_by_id,
-    create_journal_entry, update_journal_entry, delete_journal_entry
-)
 from app.services.analytics import get_student_analytics_data
 from app.services.gamification import add_user_points, POINTS_MAP
 from app.models.db import execute_query
@@ -26,6 +23,7 @@ def dashboard():
     tips = execute_query("SELECT * FROM wellness_tips WHERE is_active = 1", fetchall=True)
     daily_tip = random.choice(tips) if tips else None
     
+    today_str = date.today().strftime('%Y-%m-%d')
     # Active challenges and student completion status
     challenges = execute_query(
         """
@@ -33,16 +31,13 @@ def dashboard():
                CASE WHEN cp.id IS NOT NULL AND cp.is_completed = 1 THEN 1 ELSE 0 END as is_completed
         FROM challenges c
         LEFT JOIN challenge_progress cp ON c.id = cp.challenge_id 
-             AND cp.user_id = %s AND cp.start_date = CURDATE()
+             AND cp.user_id = %s AND cp.start_date = %s
         WHERE c.is_active = 1 AND c.challenge_type = 'daily'
         LIMIT 3
         """,
-        (user_id,),
+        (user_id, today_str),
         fetchall=True
     )
-    
-    # Recent journal entry count
-    recent_journals = get_user_journal_entries(user_id)[:3]
     
     return render_template(
         'dashboard.html',
@@ -50,8 +45,7 @@ def dashboard():
         today_record=today_record,
         streak=streak,
         daily_tip=daily_tip,
-        challenges=challenges,
-        recent_journals=recent_journals
+        challenges=challenges
     )
 
 @student_bp.route('/wellness', methods=['GET', 'POST'])
@@ -89,59 +83,6 @@ def wellness_history():
     )
     return render_template('wellness/history.html', records=records)
 
-@student_bp.route('/journal', methods=['GET'])
-@student_required
-def journal():
-    user_id = session['user_id']
-    entries = get_user_journal_entries(user_id)
-    return render_template('journal/index.html', entries=entries)
-
-@student_bp.route('/journal/add', methods=['POST'])
-@student_required
-def add_journal():
-    user_id = session['user_id']
-    content = request.form.get('content', '')
-    success, message = create_journal_entry(user_id, content)
-    
-    if success:
-        flash(message, 'success')
-    else:
-        flash(message, 'danger')
-        
-    return redirect(url_for('student.journal'))
-
-@student_bp.route('/journal/edit/<int:entry_id>', methods=['GET', 'POST'])
-@student_required
-def edit_journal(entry_id):
-    user_id = session['user_id']
-    entry = get_journal_entry_by_id(user_id, entry_id)
-    
-    if not entry:
-        flash("Journal entry not found or access denied.", "danger")
-        return redirect(url_for('student.journal'))
-        
-    if request.method == 'POST':
-        content = request.form.get('content', '')
-        success, message = update_journal_entry(user_id, entry_id, content)
-        if success:
-            flash(message, 'success')
-            return redirect(url_for('student.journal'))
-        else:
-            flash(message, 'danger')
-            
-    return render_template('journal/edit.html', entry=entry)
-
-@student_bp.route('/journal/delete/<int:entry_id>', methods=['POST'])
-@student_required
-def delete_journal(entry_id):
-    user_id = session['user_id']
-    success, message = delete_journal_entry(user_id, entry_id)
-    if success:
-        flash(message, 'success')
-    else:
-        flash(message, 'danger')
-    return redirect(url_for('student.journal'))
-
 @student_bp.route('/tips')
 @student_required
 def tips():
@@ -160,17 +101,18 @@ def tips():
 @student_required
 def challenges():
     user_id = session['user_id']
+    today_str = date.today().strftime('%Y-%m-%d')
     active_challenges = execute_query(
         """
         SELECT c.*, 
                CASE WHEN cp.id IS NOT NULL AND cp.is_completed = 1 THEN 1 ELSE 0 END as is_completed
         FROM challenges c
         LEFT JOIN challenge_progress cp ON c.id = cp.challenge_id 
-             AND cp.user_id = %s AND cp.start_date = CURDATE()
+             AND cp.user_id = %s AND cp.start_date = %s
         WHERE c.is_active = 1
         ORDER BY c.challenge_type ASC, c.id DESC
         """,
-        (user_id,),
+        (user_id, today_str),
         fetchall=True
     )
     return render_template('challenges/index.html', challenges=active_challenges)
@@ -185,10 +127,11 @@ def complete_challenge(challenge_id):
         flash("Challenge not found or inactive.", "danger")
         return redirect(url_for('student.challenges'))
         
+    today_str = date.today().strftime('%Y-%m-%d')
     # Check if already completed today
     existing = execute_query(
-        "SELECT id FROM challenge_progress WHERE user_id = %s AND challenge_id = %s AND start_date = CURDATE()",
-        (user_id, challenge_id),
+        "SELECT id FROM challenge_progress WHERE user_id = %s AND challenge_id = %s AND start_date = %s",
+        (user_id, challenge_id, today_str),
         fetchone=True
     )
     
@@ -196,8 +139,8 @@ def complete_challenge(challenge_id):
         flash("You have already completed this challenge today!", "info")
     else:
         execute_query(
-            "INSERT INTO challenge_progress (user_id, challenge_id, start_date, completion_date, is_completed) VALUES (%s, %s, CURDATE(), CURDATE(), 1)",
-            (user_id, challenge_id),
+            "INSERT INTO challenge_progress (user_id, challenge_id, start_date, completion_date, is_completed) VALUES (%s, %s, %s, %s, 1)",
+            (user_id, challenge_id, today_str, today_str),
             commit=True
         )
         points = ch['points']

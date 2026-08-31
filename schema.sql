@@ -42,19 +42,7 @@ CREATE TABLE IF NOT EXISTS `wellness_records` (
     INDEX `idx_wellness_user_date` (`user_id`, `record_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 3. JournalEntries Table (Private gratitude & reflection entries)
-CREATE TABLE IF NOT EXISTS `journal_entries` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `user_id` INT NOT NULL,
-    `entry_date` DATE NOT NULL,
-    `content` TEXT NOT NULL,
-    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-    INDEX `idx_journal_user_date` (`user_id`, `entry_date`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- 4. WellnessTips Table (Admin-curated content)
+-- 3. WellnessTips Table (Admin-curated content)
 CREATE TABLE IF NOT EXISTS `wellness_tips` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `category` VARCHAR(50) NOT NULL,

@@ -3,7 +3,6 @@ from app.models.db import execute_query
 
 POINTS_MAP = {
     'daily_log': 10,
-    'journal_entry': 15,
     'daily_challenge': 20,
     'weekly_challenge': 50
 }
@@ -89,13 +88,6 @@ def check_and_award_achievements(user_id):
         fetchone=True
     )
     
-    journal_count_row = execute_query(
-        "SELECT COUNT(*) as jcount FROM journal_entries WHERE user_id = %s",
-        (user_id,),
-        fetchone=True
-    )
-    journal_count = journal_count_row['jcount'] if journal_count_row else 0
-    
     challenges_count_row = execute_query(
         "SELECT COUNT(*) as ccount FROM challenge_progress WHERE user_id = %s AND is_completed = 1",
         (user_id,),
@@ -121,9 +113,6 @@ def check_and_award_achievements(user_id):
                 earned = True
         elif ctype == 'exercise_count':
             if (stats and stats['exercise_days'] or 0) >= cval:
-                earned = True
-        elif ctype == 'journal_count':
-            if journal_count >= cval:
                 earned = True
         elif ctype == 'challenges_completed':
             if challenges_count >= cval:

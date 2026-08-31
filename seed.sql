@@ -10,8 +10,6 @@ INSERT INTO `achievements` (`name`, `description`, `badge_icon`, `criteria_type`
 ('Hydration Hero', 'Met daily hydration targets for 7 consecutive days.', 'droplet-fill', 'hydration_streak', 7),
 ('Early Sleeper', 'Recorded 7+ hours of restful sleep for 5 days.', 'moon-stars-fill', 'sleep_count', 5),
 ('Active Student', 'Completed exercise sessions 7 times in a month.', 'activity', 'exercise_count', 7),
-('Gratitude Starter', 'Written 5 reflective gratitude journal entries.', 'journal-bookmark-fill', 'journal_count', 5),
-('Gratitude Champion', 'Written 30 reflective gratitude journal entries.', 'book-half', 'journal_count', 30),
 ('Challenge Conqueror', 'Successfully completed 10 wellness challenges.', 'award-fill', 'challenges_completed', 10),
 ('Wellness Explorer', 'Logged all 6 wellness categories in a single day.', 'compass-fill', 'all_categories_day', 1);
 
@@ -27,14 +25,13 @@ INSERT INTO `wellness_tips` (`category`, `content`, `is_active`) VALUES
 ('Stress', 'Break large academic tasks into smaller 25-minute Pomodoro study intervals with short breaks to prevent burnout.', 1),
 ('Study', 'Create a dedicated, clutter-free study environment to mentally separate work time from relaxation.', 1),
 ('Study', 'Review complex notes right before sleep to enhance memory consolidation during deep sleep cycles.', 1),
-('General', 'Take time every evening to reflect on three positive events or moments of gratitude from your day.', 1);
+('General', 'Take time every evening to reflect on positive events and accomplishments from your day.', 1);
 
 -- 3. Default Initial Challenges
 INSERT INTO `challenges` (`title`, `description`, `challenge_type`, `points`, `is_active`) VALUES
 ('Hydration Boost', 'Drink at least 8 glasses of water throughout the day.', 'daily', 20, 1),
 ('Study Break Stretches', 'Take a 10-minute stretching break during your study sessions today.', 'daily', 20, 1),
 ('8-Hour Sleep Night', 'Get 8 hours of restorative sleep tonight.', 'daily', 20, 1),
-('Gratitude Reflection', 'Write down three things you are grateful for today in your gratitude journal.', 'daily', 20, 1),
 ('Screen-Free Bedtime', 'Avoid using phones or computers 30 minutes before going to bed.', 'daily', 20, 1),
 ('Weekly Exercise Master', 'Complete at least 3 exercise sessions this week (minimum 20 mins each).', 'weekly', 50, 1),
 ('Consistent Habit Tracker', 'Log your wellness data every day this week.', 'weekly', 50, 1);

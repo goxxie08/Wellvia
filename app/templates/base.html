@@ -36,49 +36,44 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {% if 'wellness' in request.endpoint %}active{% endif %}" href="{{ url_for('student.log_wellness') }}">
+                                <a class="nav-link {% if request.endpoint and 'wellness' in request.endpoint %}active{% endif %}" href="{{ url_for('student.log_wellness') }}">
                                     <i class="bi bi-plus-circle me-1"></i> Log Wellness
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {% if 'journal' in request.endpoint %}active{% endif %}" href="{{ url_for('student.journal') }}">
-                                    <i class="bi bi-journal-text me-1"></i> Gratitude Journal
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link {% if 'tips' in request.endpoint %}active{% endif %}" href="{{ url_for('student.tips') }}">
+                                <a class="nav-link {% if request.endpoint and 'tips' in request.endpoint %}active{% endif %}" href="{{ url_for('student.tips') }}">
                                     <i class="bi bi-lightbulb me-1"></i> Wellness Tips
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {% if 'challenges' in request.endpoint %}active{% endif %}" href="{{ url_for('student.challenges') }}">
+                                <a class="nav-link {% if request.endpoint and 'challenges' in request.endpoint %}active{% endif %}" href="{{ url_for('student.challenges') }}">
                                     <i class="bi bi-trophy me-1"></i> Challenges
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {% if 'progress' in request.endpoint %}active{% endif %}" href="{{ url_for('student.progress') }}">
+                                <a class="nav-link {% if request.endpoint and 'progress' in request.endpoint %}active{% endif %}" href="{{ url_for('student.progress') }}">
                                     <i class="bi bi-graph-up me-1"></i> My Progress
                                 </a>
                             </li>
                         {% elif session.get('role') == 'admin' %}
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}" href="{{ url_for('admin.dashboard') }}">
-                                    <i class="bi bi-speedometer2 me-1"></i> Admin Analytics
+                                    <i class="bi bi-speedometer2 me-1"></i> Overview
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {% if request.endpoint == 'admin.users' %}active{% endif %}" href="{{ url_for('admin.users') }}">
-                                    <i class="bi bi-people me-1"></i> Student Accounts
+                                <a class="nav-link {% if request.endpoint and 'users' in request.endpoint %}active{% endif %}" href="{{ url_for('admin.users') }}">
+                                    <i class="bi bi-people me-1"></i> User Management
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {% if request.endpoint == 'admin.tips' %}active{% endif %}" href="{{ url_for('admin.tips') }}">
-                                    <i class="bi bi-journal-check me-1"></i> Manage Tips
+                                <a class="nav-link {% if request.endpoint and 'tips' in request.endpoint %}active{% endif %}" href="{{ url_for('admin.tips') }}">
+                                    <i class="bi bi-lightbulb me-1"></i> Tips Management
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {% if request.endpoint == 'admin.challenges' %}active{% endif %}" href="{{ url_for('admin.challenges') }}">
-                                    <i class="bi bi-award me-1"></i> Manage Challenges
+                                <a class="nav-link {% if request.endpoint and 'challenges' in request.endpoint %}active{% endif %}" href="{{ url_for('admin.challenges') }}">
+                                    <i class="bi bi-trophy me-1"></i> Challenges Management
                                 </a>
                             </li>
                         {% endif %}

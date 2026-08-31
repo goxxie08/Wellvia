@@ -54,7 +54,7 @@
             <div class="stat-label">Total Points Earned</div>
             <div class="stat-value">{{ user.total_points }} <span style="font-size: 1.2rem; opacity: 0.9;">Pts 🌟</span></div>
             <p class="small mb-0 mt-2 opacity-75">
-                Earn points by logging habits, journaling & challenges.
+                Earn points by logging habits & challenges.
             </p>
             <i class="bi bi-award-fill stat-icon"></i>
         </div>
@@ -142,7 +142,7 @@
                 </div>
             {% else %}
                 <div class="text-center py-5">
-                    <i class="bi bi-journal-plus display-4 text-muted mb-3 d-block"></i>
+                    <i class="bi bi-pencil-square display-4 text-muted mb-3 d-block"></i>
                     <p class="text-muted">You haven't recorded any wellness metrics for today yet.</p>
                     <a href="{{ url_for('student.log_wellness') }}" class="btn btn-primary-gradient">
                         <i class="bi bi-plus-circle me-1"></i> Log Today's Metrics Now
@@ -154,9 +154,8 @@
 
     <!-- Daily Tip & Quick Gratitude Card -->
     <div class="col-lg-4">
-        <!-- Rotating Daily Wellness Tip -->
         {% if daily_tip %}
-            <div class="card card-custom p-4 mb-4" style="background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%); border-color: #cbd5e1;">
+            <div class="card card-custom p-4">
                 <div class="d-flex align-items-center mb-2">
                     <i class="bi bi-lightbulb-fill text-warning fs-4 me-2"></i>
                     <h6 class="fw-bold mb-0 text-dark">Tip of the Day ({{ daily_tip.category }})</h6>
@@ -164,29 +163,6 @@
                 <p class="small text-secondary mb-0">"{{ daily_tip.content }}"</p>
             </div>
         {% endif %}
-
-        <!-- Quick Journal Link -->
-        <div class="card card-custom p-4">
-            <h6 class="fw-bold mb-2"><i class="bi bi-journal-bookmark-fill me-2 text-primary"></i> Gratitude Journal</h6>
-            <p class="small text-muted mb-3">Reflecting on moments of gratitude promotes positive mental well-being.</p>
-            
-            {% if recent_journals %}
-                <div class="list-group list-group-flush mb-3">
-                    {% for j in recent_journals %}
-                        <div class="list-group-item px-0 py-2 border-0">
-                            <div class="d-flex justify-content-between small text-muted">
-                                <span>{{ j.entry_date }}</span>
-                            </div>
-                            <p class="mb-0 small text-truncate fw-medium" style="max-width: 250px;">{{ j.content }}</p>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-
-            <a href="{{ url_for('student.journal') }}" class="btn btn-outline-primary btn-sm rounded-pill w-100">
-                <i class="bi bi-pencil me-1"></i> Write Gratitude Entry (+15 Pts)
-            </a>
-        </div>
     </div>
 </div>
 
