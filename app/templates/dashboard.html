@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Dashboard{% endblock %}
+
+{% block content %}
+<!-- Header / Greeting Section -->
+<div class="row mb-4 align-items-center">
+    <div class="col-md-8">
+        <h1 class="fw-bold mb-1">Hello, {{ session.get('username') }} 👋</h1>
+        <p class="text-muted">Here is your daily well-being snapshot and habit consistency progress.</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a href="{{ url_for('student.log_wellness') }}" class="btn btn-primary-gradient py-2 px-4 shadow">
+            <i class="bi bi-pencil-square me-2"></i> Log Today's Wellness
+        </a>
+    </div>
+</div>
+
+<!-- Stat Cards Row -->
+<div class="row g-3 mb-4">
+    <!-- Wellness Score Card -->
+    <div class="col-12 col-md-4">
+        <div class="stat-card score-card shadow-sm">
+            <div class="stat-label">Today's Wellness Score</div>
+            <div class="stat-value">
+                {% if today_record and today_record.wellness_score is not none %}
+                    {{ today_record.wellness_score }}<span style="font-size: 1.2rem; opacity: 0.8;">/100</span>
+                {% else %}
+                    <span style="font-size: 1.5rem; opacity: 0.8;">Not Tracked</span>
+                {% endif %}
+            </div>
+            <p class="small mb-0 mt-2 opacity-75">
+                <i class="bi bi-info-circle me-1"></i> Self-awareness habit score
+            </p>
+            <i class="bi bi-heart-pulse-fill stat-icon"></i>
+        </div>
+    </div>
+
+    <!-- Habit Streak Card -->
+    <div class="col-12 col-md-4">
+        <div class="stat-card streak-card shadow-sm">
+            <div class="stat-label">Logging Streak</div>
+            <div class="stat-value">{{ streak }} <span style="font-size: 1.2rem; opacity: 0.9;">Days 🔥</span></div>
+            <p class="small mb-0 mt-2 opacity-75">
+                Maintain daily logging to keep your streak!
+            </p>
+            <i class="bi bi-fire stat-icon"></i>
+        </div>
+    </div>
+
+    <!-- Accumulated Points Card -->
+    <div class="col-12 col-md-4">
+        <div class="stat-card points-card shadow-sm">
+            <div class="stat-label">Total Points Earned</div>
+            <div class="stat-value">{{ user.total_points }} <span style="font-size: 1.2rem; opacity: 0.9;">Pts 🌟</span></div>
+            <p class="small mb-0 mt-2 opacity-75">
+                Earn points by logging habits, journaling & challenges.
+            </p>
+            <i class="bi bi-award-fill stat-icon"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content Grid -->
+<div class="row g-4 mb-4">
+    <!-- Today's Tracking Summary -->
+    <div class="col-lg-8">
+        <div class="card card-custom p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0"><i class="bi bi-calendar-check me-2 text-teal"></i> Today's Tracked Activities</h5>
+                <a href="{{ url_for('student.log_wellness') }}" class="small text-teal text-decoration-none fw-semibold">Edit Logs <i class="bi bi-arrow-right"></i></a>
+            </div>
+
+            {% if today_record %}
+                <div class="row g-3 mt-1">
+                    <div class="col-6 col-md-4">
+                        <div class="p-3 border rounded-3 bg-light">
+                            <div class="text-muted small">Sleep</div>
+                            <div class="fw-bold text-dark fs-5">
+                                {{ today_record.sleep_hours or '—' }} <span class="fs-6 text-muted">hrs</span>
+                            </div>
+                            <small class="text-muted">Quality: {{ today_record.sleep_quality or '—' }}/5</small>
+                        </div>
+                    </div>
+
+                    <div class="col-6 col-md-4">
+                        <div class="p-3 border rounded-3 bg-light">
+                            <div class="text-muted small">Hydration</div>
+                            <div class="fw-bold text-dark fs-5">
+                                {{ today_record.water_glasses or '—' }} <span class="fs-6 text-muted">glasses</span>
+                            </div>
+                            <!-- Hydration Progress Bar -->
+                            {% set water_pct = (today_record.water_glasses / 8 * 100) if today_record.water_glasses else 0 %}
+                            <div class="progress progress-custom mt-2" style="height: 6px;">
+                                <div class="progress-bar progress-bar-custom" style="width: {{ water_pct if water_pct <= 100 else 100 }}%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-6 col-md-4">
+                        <div class="p-3 border rounded-3 bg-light">
+                            <div class="text-muted small">Exercise</div>
+                            <div class="fw-bold text-dark fs-5">
+                                {{ today_record.exercise_duration or '0' }} <span class="fs-6 text-muted">mins</span>
+                            </div>
+                            <small class="text-muted">{{ today_record.exercise_type or 'None logged' }}</small>
+                        </div>
+                    </div>
+
+                    <div class="col-6 col-md-4">
+                        <div class="p-3 border rounded-3 bg-light">
+                            <div class="text-muted small">Mood</div>
+                            <div class="fw-bold text-dark fs-5">
+                                {% if today_record.mood == 5 %}Very Happy 😊
+                                {% elif today_record.mood == 4 %}Happy 🙂
+                                {% elif today_record.mood == 3 %}Neutral 😐
+                                {% elif today_record.mood == 2 %}Sad 😔
+                                {% elif today_record.mood == 1 %}Very Sad 😢
+                                {% else %}—{% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-6 col-md-4">
+                        <div class="p-3 border rounded-3 bg-light">
+                            <div class="text-muted small">Stress Level</div>
+                            <div class="fw-bold text-dark fs-5">
+                                {{ today_record.stress_level or '—' }} <span class="fs-6 text-muted">/ 5</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-6 col-md-4">
+                        <div class="p-3 border rounded-3 bg-light">
+                            <div class="text-muted small">Study Time</div>
+                            <div class="fw-bold text-dark fs-5">
+                                {{ today_record.study_hours or '—' }} <span class="fs-6 text-muted">hrs</span>
+                            </div>
+                            <small class="text-muted">{{ today_record.study_subject or 'General' }}</small>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-journal-plus display-4 text-muted mb-3 d-block"></i>
+                    <p class="text-muted">You haven't recorded any wellness metrics for today yet.</p>
+                    <a href="{{ url_for('student.log_wellness') }}" class="btn btn-primary-gradient">
+                        <i class="bi bi-plus-circle me-1"></i> Log Today's Metrics Now
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Daily Tip & Quick Gratitude Card -->
+    <div class="col-lg-4">
+        <!-- Rotating Daily Wellness Tip -->
+        {% if daily_tip %}
+            <div class="card card-custom p-4 mb-4" style="background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%); border-color: #cbd5e1;">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="bi bi-lightbulb-fill text-warning fs-4 me-2"></i>
+                    <h6 class="fw-bold mb-0 text-dark">Tip of the Day ({{ daily_tip.category }})</h6>
+                </div>
+                <p class="small text-secondary mb-0">"{{ daily_tip.content }}"</p>
+            </div>
+        {% endif %}
+
+        <!-- Quick Journal Link -->
+        <div class="card card-custom p-4">
+            <h6 class="fw-bold mb-2"><i class="bi bi-journal-bookmark-fill me-2 text-primary"></i> Gratitude Journal</h6>
+            <p class="small text-muted mb-3">Reflecting on moments of gratitude promotes positive mental well-being.</p>
+            
+            {% if recent_journals %}
+                <div class="list-group list-group-flush mb-3">
+                    {% for j in recent_journals %}
+                        <div class="list-group-item px-0 py-2 border-0">
+                            <div class="d-flex justify-content-between small text-muted">
+                                <span>{{ j.entry_date }}</span>
+                            </div>
+                            <p class="mb-0 small text-truncate fw-medium" style="max-width: 250px;">{{ j.content }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <a href="{{ url_for('student.journal') }}" class="btn btn-outline-primary btn-sm rounded-pill w-100">
+                <i class="bi bi-pencil me-1"></i> Write Gratitude Entry (+15 Pts)
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Active Challenges Banner -->
+{% if challenges %}
+<div class="card card-custom p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-trophy-fill me-2 text-warning"></i> Active Daily Challenges</h5>
+        <a href="{{ url_for('student.challenges') }}" class="small text-teal text-decoration-none fw-semibold">View All Challenges <i class="bi bi-arrow-right"></i></a>
+    </div>
+
+    <div class="row g-3">
+        {% for ch in challenges %}
+            <div class="col-md-4">
+                <div class="p-3 border rounded-3 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="fw-bold mb-0">{{ ch.title }}</h6>
+                            <span class="badge bg-primary-subtle text-primary">+{{ ch.points }} Pts</span>
+                        </div>
+                        <p class="small text-muted mb-3">{{ ch.description }}</p>
+                    </div>
+
+                    <div>
+                        {% if ch.is_completed %}
+                            <span class="badge bg-success text-white w-100 py-2"><i class="bi bi-check-circle me-1"></i> Completed Today</span>
+                        {% else %}
+                            <form action="{{ url_for('student.complete_challenge', challenge_id=ch.id) }}" method="POST">
+                                <button type="submit" class="btn btn-outline-success btn-sm w-100">
+                                    Mark Completed
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

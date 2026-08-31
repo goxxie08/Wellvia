@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Wellness Tips{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2 class="fw-bold mb-1">Curated Wellness Tips</h2>
+    <p class="text-muted small mb-3">Practical recommendations for sleep hygiene, stress relief, hydration, physical movement, and study balance.</p>
+
+    <!-- Category Filter Buttons -->
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a href="{{ url_for('student.tips', category='All') }}" class="btn btn-sm {% if not current_category or current_category == 'All' %}btn-primary-gradient{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">
+            All Categories
+        </a>
+        {% for cat in categories %}
+            <a href="{{ url_for('student.tips', category=cat) }}" class="btn btn-sm {% if current_category == cat %}btn-primary-gradient{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">
+                {{ cat }}
+            </a>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Tips Grid -->
+<div class="row g-3">
+    {% if tips %}
+        {% for tip in tips %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card card-custom p-4 h-100 shadow-sm border-start border-4 border-teal">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-teal-subtle text-teal fw-bold" style="background: #e6fffa; color: #0d9488;">
+                            {{ tip.category }}
+                        </span>
+                        <i class="bi bi-lightbulb text-warning fs-5"></i>
+                    </div>
+                    <p class="mb-0 text-secondary" style="font-size: 0.95rem;">"{{ tip.content }}"</p>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12 text-center py-5 text-muted">
+            <i class="bi bi-journal-x display-4 mb-2 d-block"></i>
+            <p>No wellness tips found for the selected category.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

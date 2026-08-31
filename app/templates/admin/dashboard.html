@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Analytics Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Institutional Wellness Analytics</h2>
+        <p class="text-muted small mb-0">Aggregated, anonymized well-being statistics across the student body</p>
+    </div>
+    <span class="badge bg-danger text-uppercase px-3 py-2">Administrator Panel</span>
+</div>
+
+<!-- Admin Summary Stat Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="p-3 border rounded-3 bg-white shadow-sm">
+            <div class="text-muted small">Registered Students</div>
+            <div class="fw-bold text-dark fs-3">{{ analytics.total_students }}</div>
+            <small class="text-success"><i class="bi bi-person-check me-1"></i>{{ analytics.active_students }} Active</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="p-3 border rounded-3 bg-white shadow-sm">
+            <div class="text-muted small">Avg Sleep Duration</div>
+            <div class="fw-bold text-teal fs-3">{{ analytics.avg_sleep }} <span class="fs-6 text-muted">hrs</span></div>
+            <small class="text-muted">Target: 7–9 hrs</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="p-3 border rounded-3 bg-white shadow-sm">
+            <div class="text-muted small">Avg Water Intake</div>
+            <div class="fw-bold text-primary fs-3">{{ analytics.avg_water }} <span class="fs-6 text-muted">glasses</span></div>
+            <small class="text-muted">Target: 8 glasses</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="p-3 border rounded-3 bg-white shadow-sm">
+            <div class="text-muted small">Avg Wellness Score</div>
+            <div class="fw-bold text-success fs-3">{{ analytics.avg_score }} <span class="fs-6 text-muted">/100</span></div>
+            <small class="text-muted">Aggregate Score</small>
+        </div>
+    </div>
+</div>
+
+<!-- Aggregated Admin Charts Grid -->
+<div class="row g-4 mb-4">
+    <!-- Student Sleep Trend Chart -->
+    <div class="col-lg-8">
+        <div class="card card-custom p-4 shadow-sm h-100">
+            <h6 class="fw-bold mb-3"><i class="bi bi-moon-stars me-2 text-teal"></i> System-Wide Average Sleep Duration (Past 30 Days)</h6>
+            <div style="position: relative; height: 260px;">
+                <canvas id="adminSleepTrendChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mood Distribution Chart -->
+    <div class="col-lg-4">
+        <div class="card card-custom p-4 shadow-sm h-100">
+            <h6 class="fw-bold mb-3"><i class="bi bi-emoji-smile me-2 text-success"></i> Mood Distribution</h6>
+            <div style="position: relative; height: 260px;">
+                <canvas id="adminMoodChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stress Distribution Chart -->
+    <div class="col-lg-4">
+        <div class="card card-custom p-4 shadow-sm h-100">
+            <h6 class="fw-bold mb-3"><i class="bi bi-exclamation-triangle me-2 text-danger"></i> Stress Distribution</h6>
+            <div style="position: relative; height: 260px;">
+                <canvas id="adminStressChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Challenge Participation Rates -->
+    <div class="col-lg-8">
+        <div class="card card-custom p-4 shadow-sm h-100">
+            <h6 class="fw-bold mb-3"><i class="bi bi-trophy me-2 text-warning"></i> Challenge Completion Rates</h6>
+            {% if analytics.challenge_titles %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Challenge Title</th>
+                                <th class="text-end">Completions Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for title in analytics.challenge_titles %}
+                                <tr>
+                                    <td class="fw-semibold">{{ title }}</td>
+                                    <td class="text-end"><span class="badge bg-success px-3">{{ analytics.challenge_completions[loop.index0] }}</span></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted small">No challenge completion data available yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const analytics = {{ analytics | tojson }};
+        renderAdminCharts(analytics);
+    });
+</script>
+{% endblock %}

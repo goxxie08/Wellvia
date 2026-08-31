@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}Profile & Achievements{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Profile Info Card -->
+    <div class="col-lg-4">
+        <div class="card card-custom p-4 text-center shadow-sm">
+            <div class="d-inline-flex align-items-center justify-content-center bg-teal-subtle text-teal rounded-circle mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2.5rem; background: #e6fffa;">
+                <i class="bi bi-person-fill text-teal"></i>
+            </div>
+            <h4 class="fw-bold mb-1">{{ user.username }}</h4>
+            <p class="text-muted small mb-3">{{ user.email }}</p>
+            <span class="badge bg-success text-uppercase px-3 py-2" style="font-size: 0.75rem;">Student Account</span>
+
+            <hr class="my-4">
+
+            <div class="row text-center">
+                <div class="col-6">
+                    <div class="text-muted small">Total Points</div>
+                    <div class="fw-bold text-primary fs-4">{{ user.total_points }}</div>
+                </div>
+                <div class="col-6 border-start">
+                    <div class="text-muted small">Active Streak</div>
+                    <div class="fw-bold text-warning fs-4">{{ streak }} Days</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Achievements Grid -->
+    <div class="col-lg-8">
+        <div class="card card-custom p-4 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0"><i class="bi bi-award-fill text-warning me-2"></i> Badges & Achievements</h5>
+                <span class="badge bg-primary px-3 py-2">{{ unlocked_count }} / {{ total_achievements }} Unlocked</span>
+            </div>
+            <p class="small text-muted mb-4">Milestones earned through daily habit consistency, journaling, and challenge completion.</p>
+
+            <div class="row g-3">
+                {% for ach in achievements %}
+                    <div class="col-6 col-md-4">
+                        <div class="badge-item {% if ach.unlocked %}unlocked{% endif %}">
+                            <i class="bi bi-{{ ach.badge_icon }} badge-icon d-block"></i>
+                            <h6 class="fw-bold mb-1" style="font-size: 0.9rem;">{{ ach.name }}</h6>
+                            <p class="small text-muted mb-0" style="font-size: 0.75rem;">{{ ach.description }}</p>
+                            {% if ach.unlocked %}
+                                <span class="badge bg-success mt-2" style="font-size: 0.65rem;">Unlocked</span>
+                            {% else %}
+                                <span class="badge bg-secondary mt-2" style="font-size: 0.65rem;">Locked</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}Log Daily Wellness{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card card-custom p-4 shadow-sm mb-4">
+            <div class="d-flex align-items-center mb-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-teal-subtle text-teal rounded-circle me-3" style="width: 50px; height: 50px; font-size: 1.5rem; background: #e6fffa;">
+                    <i class="bi bi-heart-pulse text-teal"></i>
+                </div>
+                <div>
+                    <h3 class="fw-bold mb-0">Record Today's Wellness</h3>
+                    <p class="text-muted small mb-0">Log your habits to calculate your daily wellness score and earn streak points</p>
+                </div>
+            </div>
+
+            <form action="{{ url_for('student.log_wellness') }}" method="POST">
+                <div class="row g-4">
+                    <!-- Sleep Section -->
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded-3 bg-light h-100">
+                            <h6 class="fw-bold text-teal mb-3"><i class="bi bi-moon-stars me-2"></i> Sleep Tracking</h6>
+                            <div class="mb-3">
+                                <label for="sleep_hours" class="form-label small fw-bold">Sleep Duration (Hours)</label>
+                                <input type="number" step="0.5" min="0" max="24" class="form-control form-control-custom" id="sleep_hours" name="sleep_hours" value="{{ record.sleep_hours or '' }}" placeholder="e.g. 7.5">
+                            </div>
+                            <div>
+                                <label for="sleep_quality" class="form-label small fw-bold">Sleep Quality (1 = Poor, 5 = Restful)</label>
+                                <select class="form-select form-select-custom" id="sleep_quality" name="sleep_quality">
+                                    <option value="">Select Quality...</option>
+                                    <option value="5" {% if record.sleep_quality == 5 %}selected{% endif %}>5 - Restful & Refreshing</option>
+                                    <option value="4" {% if record.sleep_quality == 4 %}selected{% endif %}>4 - Good</option>
+                                    <option value="3" {% if record.sleep_quality == 3 %}selected{% endif %}>3 - Average</option>
+                                    <option value="2" {% if record.sleep_quality == 2 %}selected{% endif %}>2 - Poor</option>
+                                    <option value="1" {% if record.sleep_quality == 1 %}selected{% endif %}>1 - Very Poor / Disrupted</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hydration Section -->
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded-3 bg-light h-100">
+                            <h6 class="fw-bold text-primary mb-3"><i class="bi bi-droplet-fill me-2"></i> Hydration Tracking</h6>
+                            <div class="mb-3">
+                                <label for="water_glasses" class="form-label small fw-bold">Water Intake (Glasses / 250ml)</label>
+                                <input type="number" min="0" max="30" class="form-control form-control-custom" id="water_glasses" name="water_glasses" value="{{ record.water_glasses or '' }}" placeholder="e.g. 8">
+                                <div class="form-text">Recommended daily goal: 8 glasses (approx. 2 liters).</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Exercise Section -->
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded-3 bg-light h-100">
+                            <h6 class="fw-bold text-success mb-3"><i class="bi bi-activity me-2"></i> Physical Exercise</h6>
+                            <div class="mb-3">
+                                <label for="exercise_type" class="form-label small fw-bold">Activity Type</label>
+                                <input type="text" class="form-control form-control-custom" id="exercise_type" name="exercise_type" value="{{ record.exercise_type or '' }}" placeholder="e.g. Walking, Yoga, Gym, Cycling">
+                            </div>
+                            <div class="row">
+                                <div class="col-6 mb-2">
+                                    <label for="exercise_duration" class="form-label small fw-bold">Duration (Mins)</label>
+                                    <input type="number" min="0" max="600" class="form-control form-control-custom" id="exercise_duration" name="exercise_duration" value="{{ record.exercise_duration or '' }}" placeholder="e.g. 30">
+                                </div>
+                                <div class="col-6 mb-2">
+                                    <label for="exercise_intensity" class="form-label small fw-bold">Intensity</label>
+                                    <select class="form-select form-select-custom" id="exercise_intensity" name="exercise_intensity">
+                                        <option value="">Select Intensity...</option>
+                                        <option value="Light" {% if record.exercise_intensity == 'Light' %}selected{% endif %}>Light</option>
+                                        <option value="Moderate" {% if record.exercise_intensity == 'Moderate' %}selected{% endif %}>Moderate</option>
+                                        <option value="Vigorous" {% if record.exercise_intensity == 'Vigorous' %}selected{% endif %}>Vigorous</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mood & Stress Section -->
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded-3 bg-light h-100">
+                            <h6 class="fw-bold text-warning mb-3"><i class="bi bi-emoji-smile me-2"></i> Emotional State</h6>
+                            <div class="mb-3">
+                                <label for="mood" class="form-label small fw-bold">Daily Mood</label>
+                                <select class="form-select form-select-custom" id="mood" name="mood">
+                                    <option value="">Select Mood...</option>
+                                    <option value="5" {% if record.mood == 5 %}selected{% endif %}>5 - Very Happy 😊</option>
+                                    <option value="4" {% if record.mood == 4 %}selected{% endif %}>4 - Happy 🙂</option>
+                                    <option value="3" {% if record.mood == 3 %}selected{% endif %}>3 - Neutral 😐</option>
+                                    <option value="2" {% if record.mood == 2 %}selected{% endif %}>2 - Sad 😔</option>
+                                    <option value="1" {% if record.mood == 1 %}selected{% endif %}>1 - Very Sad 😢</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="stress_level" class="form-label small fw-bold">Stress Level</label>
+                                <select class="form-select form-select-custom" id="stress_level" name="stress_level">
+                                    <option value="">Select Stress Level...</option>
+                                    <option value="1" {% if record.stress_level == 1 %}selected{% endif %}>1 - Very Low Stress</option>
+                                    <option value="2" {% if record.stress_level == 2 %}selected{% endif %}>2 - Low Stress</option>
+                                    <option value="3" {% if record.stress_level == 3 %}selected{% endif %}>3 - Moderate Stress</option>
+                                    <option value="4" {% if record.stress_level == 4 %}selected{% endif %}>4 - High Stress</option>
+                                    <option value="5" {% if record.stress_level == 5 %}selected{% endif %}>5 - Very High Stress</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Study Tracking Section -->
+                    <div class="col-12">
+                        <div class="p-3 border rounded-3 bg-light">
+                            <h6 class="fw-bold text-indigo mb-3"><i class="bi bi-book me-2"></i> Academic Study Hours</h6>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="study_hours" class="form-label small fw-bold">Total Study Duration (Hours)</label>
+                                    <input type="number" step="0.5" min="0" max="24" class="form-control form-control-custom" id="study_hours" name="study_hours" value="{{ record.study_hours or '' }}" placeholder="e.g. 4.0">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="study_sessions" class="form-label small fw-bold">Number of Study Sessions</label>
+                                    <input type="number" min="0" max="10" class="form-control form-control-custom" id="study_sessions" name="study_sessions" value="{{ record.study_sessions or '' }}" placeholder="e.g. 2">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="study_subject" class="form-label small fw-bold">Primary Subject / Tag</label>
+                                    <input type="text" class="form-control form-control-custom" id="study_subject" name="study_subject" value="{{ record.study_subject or '' }}" placeholder="e.g. Mathematics, Computer Science">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 text-end">
+                    <a href="{{ url_for('student.dashboard') }}" class="btn btn-light me-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary-gradient px-4 py-2">
+                        <i class="bi bi-check-circle me-1"></i> Save Wellness Entry
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

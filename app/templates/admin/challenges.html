@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Challenges{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Add Challenge Form -->
+    <div class="col-lg-4">
+        <div class="card card-custom p-4 shadow-sm sticky-top" style="top: 80px;">
+            <h5 class="fw-bold mb-3"><i class="bi bi-plus-circle me-2 text-primary"></i> Create Challenge</h5>
+            <form action="{{ url_for('admin.challenges') }}" method="POST">
+                <div class="mb-3">
+                    <label for="title" class="form-label small fw-bold">Title</label>
+                    <input type="text" class="form-control form-control-custom" id="title" name="title" placeholder="e.g. 8-Hour Sleep Night" required>
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label small fw-bold">Description</label>
+                    <textarea class="form-control form-control-custom" id="description" name="description" rows="3" placeholder="Challenge objective description..." required></textarea>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label for="challenge_type" class="form-label small fw-bold">Type</label>
+                        <select class="form-select form-select-custom" id="challenge_type" name="challenge_type">
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label for="points" class="form-label small fw-bold">Points Reward</label>
+                        <input type="number" min="5" max="200" class="form-control form-control-custom" id="points" name="points" value="20" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary-gradient w-100 py-2">Create Challenge</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Challenges Table -->
+    <div class="col-lg-8">
+        <div class="card card-custom p-4 shadow-sm">
+            <h5 class="fw-bold mb-3"><i class="bi bi-trophy me-2 text-warning"></i> Existing Challenges</h5>
+
+            {% if challenges %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Title & Details</th>
+                                <th>Type</th>
+                                <th>Reward</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ch in challenges %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold text-dark">{{ ch.title }}</div>
+                                        <div class="small text-muted">{{ ch.description }}</div>
+                                    </td>
+                                    <td><span class="badge bg-light text-dark border text-uppercase">{{ ch.challenge_type }}</span></td>
+                                    <td><span class="badge bg-warning-subtle text-warning-emphasis fw-bold">+{{ ch.points }} Pts</span></td>
+                                    <td>
+                                        {% if ch.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Retired</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <form action="{{ url_for('admin.toggle_challenge', challenge_id=ch.id) }}" method="POST" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                                {% if ch.is_active %}Retire{% else %}Activate{% endif %}
+                                            </button>
+                                        </form>
+                                        <form action="{{ url_for('admin.delete_challenge', challenge_id=ch.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete challenge?');">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted text-center py-4">No challenges created yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

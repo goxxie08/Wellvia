@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Accounts Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Student Accounts</h2>
+        <p class="text-muted small mb-0">Manage registered student accounts and activation status</p>
+    </div>
+</div>
+
+<div class="card card-custom p-4 shadow-sm">
+    {% if students %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Registered Date</th>
+                        <th>Points</th>
+                        <th>Logs Count</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for st in students %}
+                        <tr>
+                            <td class="fw-bold text-dark">{{ st.username }}</td>
+                            <td>{{ st.email }}</td>
+                            <td>{{ st.created_at.strftime('%Y-%m-%d') if st.created_at else '—' }}</td>
+                            <td><span class="badge bg-primary-subtle text-primary">{{ st.total_points }} Pts</span></td>
+                            <td>{{ st.log_count }}</td>
+                            <td>
+                                {% if st.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Deactivated</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <form action="{{ url_for('admin.toggle_user', user_id=st.id) }}" method="POST" class="d-inline">
+                                    {% if st.is_active %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Deactivate student account?');">
+                                            Deactivate
+                                        </button>
+                                    {% else %}
+                                        <button type="submit" class="btn btn-sm btn-outline-success">
+                                            Activate
+                                        </button>
+                                    {% endif %}
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-muted text-center py-4">No student accounts registered yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

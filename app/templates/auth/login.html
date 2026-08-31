@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center py-4">
+    <div class="col-12 col-md-8 col-lg-5">
+        <div class="card card-custom p-4 shadow-lg">
+            <div class="text-center mb-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-teal-subtle text-teal rounded-circle mb-3" style="width: 60px; height: 60px; font-size: 1.8rem; background: #e6fffa;">
+                    <i class="bi bi-person-fill text-dark"></i>
+                </div>
+                <h2 class="fw-bold mb-1">Welcome Back</h2>
+                <p class="text-muted small">Log in to track your daily wellness and habit streaks</p>
+            </div>
+
+            <form action="{{ url_for('auth.login') }}" method="POST">
+                <div class="mb-3">
+                    <label for="login_input" class="form-label font-weight-bold small text-uppercase text-muted">Email or Username</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope"></i></span>
+                        <input type="text" class="form-control form-control-custom border-start-0" id="login_input" name="login_input" value="{{ login_input or '' }}" placeholder="student@wellvia.edu or username" required autofocus>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="password" class="form-label font-weight-bold small text-uppercase text-muted">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock"></i></span>
+                        <input type="password" class="form-control form-control-custom border-start-0" id="password" name="password" placeholder="••••••••" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary-gradient w-100 py-2 fs-6">
+                    <i class="bi bi-box-arrow-in-right me-2"></i> Log In
+                </button>
+            </form>
+
+            <hr class="my-4">
+
+            <div class="text-center">
+                <p class="text-muted small mb-0">Don't have an account yet?</p>
+                <a href="{{ url_for('auth.register') }}" class="fw-bold text-teal text-decoration-none">Create a Student Account</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

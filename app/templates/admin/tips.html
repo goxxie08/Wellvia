@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Wellness Tips{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Add Tip Form -->
+    <div class="col-lg-4">
+        <div class="card card-custom p-4 shadow-sm sticky-top" style="top: 80px;">
+            <h5 class="fw-bold mb-3"><i class="bi bi-plus-circle me-2 text-teal"></i> Add New Wellness Tip</h5>
+            <form action="{{ url_for('admin.tips') }}" method="POST">
+                <div class="mb-3">
+                    <label for="category" class="form-label small fw-bold">Category</label>
+                    <select class="form-select form-select-custom" id="category" name="category" required>
+                        <option value="Sleep">Sleep</option>
+                        <option value="Hydration">Hydration</option>
+                        <option value="Exercise">Exercise</option>
+                        <option value="Stress">Stress</option>
+                        <option value="Study">Study</option>
+                        <option value="General">General</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="content" class="form-label small fw-bold">Tip Content</label>
+                    <textarea class="form-control form-control-custom" id="content" name="content" rows="4" placeholder="Enter actionable wellness tip..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary-gradient w-100 py-2">Add Tip</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tips Table -->
+    <div class="col-lg-8">
+        <div class="card card-custom p-4 shadow-sm">
+            <h5 class="fw-bold mb-3"><i class="bi bi-lightbulb me-2 text-warning"></i> Existing Wellness Tips</h5>
+
+            {% if tips %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Category</th>
+                                <th>Content</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tip in tips %}
+                                <tr>
+                                    <td><span class="badge bg-teal-subtle text-teal" style="background: #e6fffa; color: #0d9488;">{{ tip.category }}</span></td>
+                                    <td class="small text-secondary" style="max-width: 350px;">{{ tip.content }}</td>
+                                    <td class="text-end">
+                                        <form action="{{ url_for('admin.delete_tip', tip_id=tip.id) }}" method="POST" onsubmit="return confirm('Delete this tip?');">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted text-center py-4">No wellness tips found.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

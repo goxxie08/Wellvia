@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Registration{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center py-4">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="card card-custom p-4 shadow-lg">
+            <div class="text-center mb-4">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3" style="width: 60px; height: 60px; font-size: 1.8rem; background: #e0f2fe;">
+                    <i class="bi bi-person-plus-fill text-primary"></i>
+                </div>
+                <h2 class="fw-bold mb-1">Create Student Account</h2>
+                <p class="text-muted small">Join Wellvia to manage your well-being, habits, and balance</p>
+            </div>
+
+            <form action="{{ url_for('auth.register') }}" method="POST">
+                <div class="mb-3">
+                    <label for="username" class="form-label font-weight-bold small text-uppercase text-muted">Username</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-person"></i></span>
+                        <input type="text" class="form-control form-control-custom border-start-0" id="username" name="username" value="{{ username or '' }}" placeholder="johndoe" required autofocus>
+                    </div>
+                    <div class="form-text">Between 3 and 50 characters (letters, numbers, dots, underscores).</div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="email" class="form-label font-weight-bold small text-uppercase text-muted">Student Email</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope"></i></span>
+                        <input type="email" class="form-control form-control-custom border-start-0" id="email" name="email" value="{{ email or '' }}" placeholder="student@university.edu" required>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="password" class="form-label font-weight-bold small text-uppercase text-muted">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock"></i></span>
+                            <input type="password" class="form-control form-control-custom border-start-0" id="password" name="password" placeholder="••••••••" required>
+                        </div>
+                        <div class="form-text">At least 6 characters.</div>
+                    </div>
+
+                    <div class="col-md-6 mb-4">
+                        <label for="confirm_password" class="form-label font-weight-bold small text-uppercase text-muted">Confirm Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-shield-check"></i></span>
+                            <input type="password" class="form-control form-control-custom border-start-0" id="confirm_password" name="confirm_password" placeholder="••••••••" required>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary-gradient w-100 py-2 fs-6">
+                    <i class="bi bi-person-check me-2"></i> Register Account
+                </button>
+            </form>
+
+            <hr class="my-4">
+
+            <div class="text-center">
+                <p class="text-muted small mb-0">Already registered?</p>
+                <a href="{{ url_for('auth.login') }}" class="fw-bold text-teal text-decoration-none">Log In to Your Account</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

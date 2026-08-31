@@ -1,0 +1,19 @@
+# Environment & Secrets
+.env
+
+# SQLite Database
+wellness.db
+
+# Python Cache & Virtual Environments
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+venv/
+.venv/
+
+# IDE / System
+.vscode/
+.idea/
+*.DS_Store
