@@ -134,9 +134,10 @@ def check_and_award_achievements(user_id):
 
         if earned:
             try:
+                now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 execute_query(
-                    "INSERT INTO user_achievements (user_id, achievement_id, earned_at) VALUES (%s, %s, NOW())",
-                    (user_id, ach['id']),
+                    "INSERT INTO user_achievements (user_id, achievement_id, earned_at) VALUES (%s, %s, %s)",
+                    (user_id, ach['id'], now_str),
                     commit=True
                 )
                 newly_earned.append(ach['name'])
