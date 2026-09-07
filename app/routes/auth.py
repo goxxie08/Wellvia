@@ -23,7 +23,7 @@ def register():
         if not errors:
             # Check if username or email already exists
             existing_user = execute_query(
-                "SELECT id FROM users WHERE username = %s OR email = %s",
+                "SELECT id FROM users WHERE LOWER(username) = LOWER(%s) OR LOWER(email) = LOWER(%s)",
                 (username, email),
                 fetchone=True
             )
@@ -66,8 +66,8 @@ def login():
             return render_template('auth/login.html', login_input=login_input)
             
         user = execute_query(
-            "SELECT * FROM users WHERE email = %s OR username = %s",
-            (login_input.lower(), login_input),
+            "SELECT * FROM users WHERE LOWER(email) = LOWER(%s) OR LOWER(username) = LOWER(%s)",
+            (login_input, login_input),
             fetchone=True
         )
         
