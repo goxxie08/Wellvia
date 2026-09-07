@@ -90,6 +90,12 @@ def login():
         
         if user['role'] == 'admin':
             return redirect(url_for('admin.dashboard'))
+            
+        # If student's height or weight is missing, prompt Body Metrics & BMI setup
+        if not user.get('height') or not user.get('weight'):
+            flash('Welcome! Please enter your height and weight to calculate your Body Mass Index (BMI).', 'info')
+            return redirect(url_for('student.body_metrics'))
+
         return redirect(url_for('student.dashboard'))
 
     return render_template('auth/login.html')
@@ -99,3 +105,21 @@ def logout():
     session.clear()
     flash('You have been logged out securely.', 'info')
     return redirect(url_for('auth.login'))
+
+@auth_bp.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if 'user_id' in session:
+        if session.get('role') == 'admin':
+            return redirect(url_for('admin.dashboard'))
+        return redirect(url_for('student.dashboard'))
+
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        if email:
+            flash('If an account is associated with that email address, password reset instructions have been sent.', 'success')
+            return redirect(url_for('auth.login'))
+        else:
+            flash('Please enter a valid email address.', 'warning')
+
+    return render_template('auth/forgot_password.html')
+

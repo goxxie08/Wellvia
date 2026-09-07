@@ -6,8 +6,14 @@ from app.models.db import execute_query
 def client():
     app = create_app('default')
     app.config['TESTING'] = True
+    with app.app_context():
+        execute_query("DELETE FROM users WHERE LOWER(username) = 'teststudentuser'", commit=True)
     with app.test_client() as client:
         yield client
+    with app.app_context():
+        execute_query("DELETE FROM users WHERE LOWER(username) = 'teststudentuser'", commit=True)
+
+
 
 def test_registration_and_login_flow(client):
     # 1. Register a new user
@@ -20,15 +26,20 @@ def test_registration_and_login_flow(client):
     assert res_reg.status_code == 302
     assert '/auth/login' in res_reg.headers['Location']
 
-    # 2. Login using exact email
+    # 2. Login using exact email (new user without height/weight -> redirects to /body-metrics)
     res_login_email = client.post('/auth/login', data={
         'login_input': 'student_test_user@wellvia.edu',
         'password': 'Password123'
     }, follow_redirects=False)
     assert res_login_email.status_code == 302
-    assert '/dashboard' in res_login_email.headers['Location']
+    assert '/body-metrics' in res_login_email.headers['Location']
 
-    # 3. Login using case-insensitive username (lowercase)
+    # Submit body metrics
+    res_metrics = client.post('/body-metrics', data={'height': 175, 'weight': 70}, follow_redirects=False)
+    assert res_metrics.status_code == 302
+    assert '/dashboard' in res_metrics.headers['Location']
+
+    # 3. Login using case-insensitive username (lowercase) (user now has height/weight -> redirects to /dashboard)
     client.get('/auth/logout')
     res_login_username_lower = client.post('/auth/login', data={
         'login_input': 'teststudentuser',

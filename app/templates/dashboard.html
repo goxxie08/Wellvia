@@ -19,44 +19,71 @@
 <!-- Stat Cards Row -->
 <div class="row g-3 mb-4">
     <!-- Wellness Score Card -->
-    <div class="col-12 col-md-4">
-        <div class="stat-card score-card shadow-sm">
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="stat-card score-card shadow-sm h-100">
             <div class="stat-label">Today's Wellness Score</div>
             <div class="stat-value">
                 {% if today_record and today_record.wellness_score is not none %}
                     {{ today_record.wellness_score }}<span style="font-size: 1.2rem; opacity: 0.8;">/100</span>
                 {% else %}
-                    <span style="font-size: 1.5rem; opacity: 0.8;">Not Tracked</span>
+                    <span style="font-size: 1.3rem; opacity: 0.8;">Not Tracked</span>
                 {% endif %}
             </div>
             <p class="small mb-0 mt-2 opacity-75">
-                <i class="bi bi-info-circle me-1"></i> Self-awareness habit score
+                <i class="bi bi-info-circle me-1"></i> Self-awareness score
             </p>
             <i class="bi bi-heart-pulse-fill stat-icon"></i>
         </div>
     </div>
 
     <!-- Habit Streak Card -->
-    <div class="col-12 col-md-4">
-        <div class="stat-card streak-card shadow-sm">
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="stat-card streak-card shadow-sm h-100">
             <div class="stat-label">Logging Streak</div>
             <div class="stat-value">{{ streak }} <span style="font-size: 1.2rem; opacity: 0.9;">Days 🔥</span></div>
             <p class="small mb-0 mt-2 opacity-75">
-                Maintain daily logging to keep your streak!
+                Keep up daily consistency!
             </p>
             <i class="bi bi-fire stat-icon"></i>
         </div>
     </div>
 
     <!-- Accumulated Points Card -->
-    <div class="col-12 col-md-4">
-        <div class="stat-card points-card shadow-sm">
-            <div class="stat-label">Total Points Earned</div>
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="stat-card points-card shadow-sm h-100">
+            <div class="stat-label">Total Points</div>
             <div class="stat-value">{{ user.total_points }} <span style="font-size: 1.2rem; opacity: 0.9;">Pts 🌟</span></div>
             <p class="small mb-0 mt-2 opacity-75">
-                Earn points by logging habits & challenges.
+                Earned via habits & quests.
             </p>
             <i class="bi bi-award-fill stat-icon"></i>
+        </div>
+    </div>
+
+    <!-- BMI Stat Card -->
+    <div class="col-12 col-sm-6 col-lg-3">
+        <div class="stat-card shadow-sm h-100 text-white" style="background: linear-gradient(135deg, #0284c7 0%, #0d9488 100%);">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="stat-label">Body Mass Index (BMI)</div>
+                <a href="{{ url_for('student.body_metrics') }}" class="text-white opacity-75 text-decoration-none small hover-opacity-100">
+                    <i class="bi bi-pencil-square"></i> Update
+                </a>
+            </div>
+            <div class="stat-value">
+                {% if bmi_info %}
+                    {{ bmi_info.bmi }} <span class="badge bg-white text-dark ms-1" style="font-size: 0.75rem; vertical-align: middle;">{{ bmi_info.category }}</span>
+                {% else %}
+                    <span style="font-size: 1.2rem; opacity: 0.9;">Not Set</span>
+                {% endif %}
+            </div>
+            <p class="small mb-0 mt-2 opacity-75">
+                {% if user.height and user.weight %}
+                    {{ user.height }} cm | {{ user.weight }} kg
+                {% else %}
+                    <a href="{{ url_for('student.body_metrics') }}" class="text-white text-decoration-underline">Set Height & Weight</a>
+                {% endif %}
+            </p>
+            <i class="bi bi-person-bounding-box stat-icon"></i>
         </div>
     </div>
 </div>

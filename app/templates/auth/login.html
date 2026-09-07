@@ -1,48 +1,148 @@
 {% extends 'base.html' %}
 
-{% block title %}Login{% endblock %}
+{% block title %}Login - Student Wellness Companion{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center align-items-center py-4">
-    <div class="col-12 col-md-8 col-lg-5">
-        <div class="card card-custom p-4 shadow-lg">
-            <div class="text-center mb-4">
-                <div class="d-inline-flex align-items-center justify-content-center bg-teal-subtle text-teal rounded-circle mb-3" style="width: 60px; height: 60px; font-size: 1.8rem; background: #e6fffa;">
-                    <i class="bi bi-person-fill text-dark"></i>
-                </div>
-                <h2 class="fw-bold mb-1">Welcome Back</h2>
-                <p class="text-muted small">Log in to track your daily wellness and habit streaks</p>
-            </div>
+<div class="auth-wrapper d-flex align-items-center justify-content-center py-4 py-md-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-sm-10 col-md-8 col-lg-5 col-xl-4">
+                
+                <div class="auth-card card border-0 shadow-lg overflow-hidden position-relative">
+                    <!-- Top subtle gradient accent bar -->
+                    <div class="auth-card-top-bar"></div>
 
-            <form action="{{ url_for('auth.login') }}" method="POST">
-                <div class="mb-3">
-                    <label for="login_input" class="form-label font-weight-bold small text-uppercase text-muted">Email or Username</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope"></i></span>
-                        <input type="text" class="form-control form-control-custom border-start-0" id="login_input" name="login_input" value="{{ login_input or '' }}" placeholder="student@wellvia.edu or username" required autofocus>
+                    <div class="card-body p-4 p-sm-5">
+                        
+                        <!-- Logo & Title Section -->
+                        <div class="text-center mb-4">
+                            <!-- Student Wellness Logo Icon -->
+                            <div class="auth-logo-icon-wrapper mb-3 mx-auto">
+                                <i class="bi bi-heart-pulse-fill text-teal"></i>
+                            </div>
+                            
+                            <!-- Project Badge & Title -->
+                            <div class="d-inline-flex align-items-center gap-1 px-3 py-1 bg-teal-subtle text-teal rounded-pill mb-2 small fw-semibold">
+                                <i class="bi bi-shield-heart-fill"></i>
+                                <span>Student Wellness Companion</span>
+                            </div>
+
+                            <h1 class="h3 fw-bold text-dark mb-1 brand-font">Wellvia Login</h1>
+                            <p class="text-muted small mb-0">Welcome back! Sign in to access your wellness dashboard.</p>
+                        </div>
+
+                        <!-- Login Form -->
+                        <form action="{{ url_for('auth.login') }}" method="POST" class="auth-form">
+                            
+                            <!-- Username or Email Field -->
+                            <div class="mb-3">
+                                <label for="login_input" class="form-label font-weight-bold small text-uppercase tracking-wide text-secondary mb-1">
+                                    Username or Email
+                                </label>
+                                <div class="input-group auth-input-group">
+                                    <span class="input-group-text bg-light text-muted border-end-0 px-3" id="login-addon">
+                                        <i class="bi bi-person-fill text-teal"></i>
+                                    </span>
+                                    <input type="text" 
+                                           class="form-control form-control-custom border-start-0 ps-0" 
+                                           id="login_input" 
+                                           name="login_input" 
+                                           value="{{ login_input or '' }}" 
+                                           placeholder="student@wellvia.edu or username" 
+                                           aria-label="Username or Email"
+                                           aria-describedby="login-addon"
+                                           required 
+                                           autofocus>
+                                </div>
+                            </div>
+
+                            <!-- Password Field & Forgot Password Link -->
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label for="password" class="form-label font-weight-bold small text-uppercase tracking-wide text-secondary mb-0">
+                                        Password
+                                    </label>
+                                    <!-- Forgot Password? option with clickable icon -->
+                                    <a href="{{ url_for('auth.forgot_password') }}" class="forgot-password-link text-teal text-decoration-none small d-inline-flex align-items-center gap-1" id="forgot-password-link">
+                                        <i class="bi bi-key-fill text-teal"></i>
+                                        <span>Forgot Password?</span>
+                                    </a>
+                                </div>
+                                
+                                <div class="input-group auth-input-group">
+                                    <span class="input-group-text bg-light text-muted border-end-0 px-3" id="password-addon">
+                                        <i class="bi bi-lock-fill text-teal"></i>
+                                    </span>
+                                    <input type="password" 
+                                           class="form-control form-control-custom border-start-0 border-end-0 ps-0" 
+                                           id="password" 
+                                           name="password" 
+                                           placeholder="••••••••" 
+                                           aria-label="Password"
+                                           aria-describedby="password-addon"
+                                           required>
+                                    <button class="btn btn-outline-light text-muted border border-start-0 bg-light px-3 password-toggle-btn" 
+                                            type="button" 
+                                            id="togglePassword" 
+                                            aria-label="Toggle password visibility"
+                                            title="Show/Hide password">
+                                        <i class="bi bi-eye-fill"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Prominent Login Button -->
+                            <button type="submit" class="btn btn-primary-gradient w-100 py-2.5 fw-bold fs-6 shadow-sm btn-login-action mb-3" id="login-submit-btn">
+                                <i class="bi bi-box-arrow-in-right me-2"></i> Log In
+                            </button>
+                        </form>
+
+                        <!-- Section Divider -->
+                        <div class="auth-divider my-4">
+                            <span>OR</span>
+                        </div>
+
+                        <!-- Sign Up Option -->
+                        <div class="text-center">
+                            <p class="text-muted small mb-2">Don't have an account yet?</p>
+                            <a href="{{ url_for('auth.register') }}" class="btn btn-outline-teal w-100 py-2 fw-semibold d-inline-flex align-items-center justify-content-center gap-2 btn-signup-action" id="signup-link">
+                                <i class="bi bi-person-plus-fill fs-5"></i>
+                                <span>Create Student Account</span>
+                            </a>
+                        </div>
+
                     </div>
                 </div>
 
-                <div class="mb-4">
-                    <label for="password" class="form-label font-weight-bold small text-uppercase text-muted">Password</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock"></i></span>
-                        <input type="password" class="form-control form-control-custom border-start-0" id="password" name="password" placeholder="••••••••" required>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn btn-primary-gradient w-100 py-2 fs-6">
-                    <i class="bi bi-box-arrow-in-right me-2"></i> Log In
-                </button>
-            </form>
-
-            <hr class="my-4">
-
-            <div class="text-center">
-                <p class="text-muted small mb-0">Don't have an account yet?</p>
-                <a href="{{ url_for('auth.register') }}" class="fw-bold text-teal text-decoration-none">Create a Student Account</a>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggleBtn = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+        
+        if (toggleBtn && passwordInput) {
+            toggleBtn.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                
+                const icon = this.querySelector('i');
+                if (icon) {
+                    if (type === 'text') {
+                        icon.classList.remove('bi-eye-fill');
+                        icon.classList.add('bi-eye-slash-fill');
+                    } else {
+                        icon.classList.remove('bi-eye-slash-fill');
+                        icon.classList.add('bi-eye-fill');
+                    }
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}

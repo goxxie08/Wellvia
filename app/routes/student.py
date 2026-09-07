@@ -3,6 +3,7 @@ from datetime import date
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from app.utils.decorators import student_required
 from app.utils.validation import validate_wellness_input
+from app.utils.bmi import calculate_bmi
 from app.services.wellness import get_today_record, log_daily_wellness
 from app.services.gamification import calculate_current_streak, check_and_award_achievements
 from app.services.analytics import get_student_analytics_data
@@ -11,6 +12,53 @@ from app.models.db import execute_query
 
 student_bp = Blueprint('student', __name__)
 
+@student_bp.route('/body-metrics', methods=['GET', 'POST'])
+@student_required
+def body_metrics():
+    user_id = session['user_id']
+    user = execute_query("SELECT * FROM users WHERE id = %s", (user_id,), fetchone=True)
+    
+    if request.method == 'POST':
+        height_raw = request.form.get('height', '').strip()
+        weight_raw = request.form.get('weight', '').strip()
+        
+        errors = []
+        try:
+            height = float(height_raw)
+            if not (50 <= height <= 250):
+                errors.append("Height must be between 50 cm and 250 cm.")
+        except (ValueError, TypeError):
+            errors.append("Please enter a valid numeric value for height.")
+            
+        try:
+            weight = float(weight_raw)
+            if not (20 <= weight <= 300):
+                errors.append("Weight must be between 20 kg and 300 kg.")
+        except (ValueError, TypeError):
+            errors.append("Please enter a valid numeric value for weight.")
+            
+        if errors:
+            for err in errors:
+                flash(err, 'danger')
+            return render_template('bmi_setup.html', user=user, height=height_raw, weight=weight_raw)
+            
+        bmi_res = calculate_bmi(height, weight)
+        if not bmi_res:
+            flash("Could not calculate BMI with provided metrics.", "danger")
+            return render_template('bmi_setup.html', user=user, height=height_raw, weight=weight_raw)
+            
+        execute_query(
+            "UPDATE users SET height = %s, weight = %s, bmi = %s, bmi_category = %s WHERE id = %s",
+            (height, weight, bmi_res['bmi'], bmi_res['category'], user_id),
+            commit=True
+        )
+        
+        flash(f"Body metrics updated successfully! Your BMI is {bmi_res['bmi']} ({bmi_res['category']}).", "success")
+        return redirect(url_for('student.dashboard'))
+        
+    bmi_info = calculate_bmi(user.get('height'), user.get('weight')) if user else None
+    return render_template('bmi_setup.html', user=user, bmi_info=bmi_info)
+
 @student_bp.route('/dashboard')
 @student_required
 def dashboard():
@@ -18,6 +66,7 @@ def dashboard():
     user = execute_query("SELECT * FROM users WHERE id = %s", (user_id,), fetchone=True)
     today_record = get_today_record(user_id)
     streak = calculate_current_streak(user_id)
+    bmi_info = calculate_bmi(user.get('height'), user.get('weight')) if user and user.get('height') and user.get('weight') else None
     
     # Select rotating daily tip
     tips = execute_query("SELECT * FROM wellness_tips WHERE is_active = 1", fetchall=True)
@@ -45,7 +94,8 @@ def dashboard():
         today_record=today_record,
         streak=streak,
         daily_tip=daily_tip,
-        challenges=challenges
+        challenges=challenges,
+        bmi_info=bmi_info
     )
 
 @student_bp.route('/wellness', methods=['GET', 'POST'])
@@ -192,6 +242,7 @@ def profile():
     )
     
     unlocked_count = sum(1 for a in all_achievements if a['unlocked'])
+    bmi_info = calculate_bmi(user.get('height'), user.get('weight')) if user and user.get('height') and user.get('weight') else None
     
     return render_template(
         'profile.html',
@@ -199,5 +250,6 @@ def profile():
         streak=streak,
         achievements=all_achievements,
         unlocked_count=unlocked_count,
-        total_achievements=len(all_achievements)
+        total_achievements=len(all_achievements),
+        bmi_info=bmi_info
     )

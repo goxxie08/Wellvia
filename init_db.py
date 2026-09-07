@@ -20,6 +20,10 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'student',
     total_points INTEGER NOT NULL DEFAULT 0,
+    height REAL NULL,
+    weight REAL NULL,
+    bmi REAL NULL,
+    bmi_category TEXT NULL,
     is_active INTEGER NOT NULL DEFAULT 1,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -140,6 +144,13 @@ def init_sqlite():
     
     # Create tables
     cursor.executescript(SQLITE_SCHEMA)
+    
+    # Auto-migrate missing columns for existing users table
+    existing_cols = [row[1] for row in cursor.execute("PRAGMA table_info(users)").fetchall()]
+    for col_name, col_type in [('height', 'REAL'), ('weight', 'REAL'), ('bmi', 'REAL'), ('bmi_category', 'TEXT')]:
+        if col_name not in existing_cols:
+            cursor.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type} NULL")
+            print(f"[+] Migrated column '{col_name}' ({col_type}) into 'users' table.")
     
     # Seed achievements
     for ach in ACHIEVEMENTS_SEED:

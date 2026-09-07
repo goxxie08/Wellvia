@@ -1,4 +1,5 @@
-from flask import Flask, render_template, redirect, url_for, session
+from flask import Flask, render_template, redirect, url_for, session, send_from_directory
+import os
 from config.settings import config
 from app.models.db import close_db
 
@@ -25,6 +26,25 @@ def create_app(config_name='default'):
                 return redirect(url_for('admin.dashboard'))
             return redirect(url_for('student.dashboard'))
         return redirect(url_for('auth.login'))
+
+    # PWA & Static Asset Routes
+    @app.route('/manifest.json')
+    def manifest():
+        return send_from_directory(os.path.join(app.root_path, 'static'), 'manifest.json', mimetype='application/manifest+json')
+
+    @app.route('/service-worker.js')
+    def service_worker():
+        response = send_from_directory(os.path.join(app.root_path, 'static'), 'service-worker.js', mimetype='application/javascript')
+        response.headers['Service-Worker-Allowed'] = '/'
+        return response
+
+    @app.route('/favicon.ico')
+    def favicon():
+        return send_from_directory(os.path.join(app.root_path, 'static', 'img'), 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
+    @app.route('/offline')
+    def offline():
+        return render_template('offline.html')
 
     # Custom Error Handlers
     @app.errorhandler(404)

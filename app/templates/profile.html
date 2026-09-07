@@ -16,7 +16,7 @@
 
             <hr class="my-4">
 
-            <div class="row text-center">
+            <div class="row text-center mb-3">
                 <div class="col-6">
                     <div class="text-muted small">Total Points</div>
                     <div class="fw-bold text-primary fs-4">{{ user.total_points }}</div>
@@ -25,6 +25,25 @@
                     <div class="text-muted small">Active Streak</div>
                     <div class="fw-bold text-warning fs-4">{{ streak }} Days</div>
                 </div>
+            </div>
+
+            <!-- Body Metrics & BMI Summary Card -->
+            <div class="p-3 bg-light rounded-3 text-start border">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-bold small text-muted text-uppercase"><i class="bi bi-person-bounding-box text-teal me-1"></i> Body Metrics</span>
+                    <a href="{{ url_for('student.body_metrics') }}" class="btn btn-sm btn-outline-teal py-0 px-2 style-btn" style="font-size: 0.75rem;">Edit</a>
+                </div>
+                {% if bmi_info %}
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-bold text-dark fs-5">{{ bmi_info.bmi }} <span class="badge" style="background-color: {{ bmi_info.badge_bg }}; font-size: 0.7rem;">{{ bmi_info.category }}</span></div>
+                            <div class="small text-muted">{{ user.height }} cm · {{ user.weight }} kg</div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-muted small mb-2">Height & Weight not set.</div>
+                    <a href="{{ url_for('student.body_metrics') }}" class="btn btn-sm btn-primary-gradient w-100 py-1" style="font-size: 0.8rem;">Set Up BMI</a>
+                {% endif %}
             </div>
         </div>
     </div>

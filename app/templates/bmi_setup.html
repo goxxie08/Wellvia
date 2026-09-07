@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Body Metrics & BMI Setup{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center my-4">
+    <div class="col-lg-8 col-xl-7">
+        <div class="card card-custom shadow-lg border-0 rounded-4 overflow-hidden">
+            <!-- Header Banner -->
+            <div class="card-gradient-header p-4 text-center">
+                <div class="d-inline-flex align-items-center justify-content-center bg-white text-teal rounded-circle mb-3 shadow-sm" style="width: 64px; height: 64px;">
+                    <i class="bi bi-person-heart display-6"></i>
+                </div>
+                <h3 class="fw-bold mb-1">Body Metrics & BMI Setup</h3>
+                <p class="mb-0 text-white-50 small">Enter your height and weight to track your Body Mass Index (BMI) and health category.</p>
+            </div>
+
+            <div class="card-body p-4 p-md-5">
+                <form method="POST" action="{{ url_for('student.body_metrics') }}" id="bmiForm">
+                    <div class="row g-4 mb-4">
+                        <!-- Height Input -->
+                        <div class="col-md-6">
+                            <label for="height" class="form-label fw-bold d-flex justify-content-between">
+                                <span><i class="bi bi-ruler text-teal me-1"></i> Height</span>
+                                <span class="text-teal fw-bold" id="heightValDisplay">{{ height or user.get('height') or 170 }} cm</span>
+                            </label>
+                            <div class="input-group mb-3">
+                                <input type="number" step="0.5" min="50" max="250" class="form-control form-control-custom fs-5 fw-semibold" id="height" name="height" value="{{ height or user.get('height') or 170 }}" required>
+                                <span class="input-group-text bg-light fw-medium">cm</span>
+                            </div>
+                            <input type="range" class="form-range" min="100" max="220" step="0.5" id="heightRange" value="{{ height or user.get('height') or 170 }}">
+                        </div>
+
+                        <!-- Weight Input -->
+                        <div class="col-md-6">
+                            <label for="weight" class="form-label fw-bold d-flex justify-content-between">
+                                <span><i class="bi bi-speedometer text-teal me-1"></i> Weight</span>
+                                <span class="text-teal fw-bold" id="weightValDisplay">{{ weight or user.get('weight') or 65 }} kg</span>
+                            </label>
+                            <div class="input-group mb-3">
+                                <input type="number" step="0.5" min="20" max="300" class="form-control form-control-custom fs-5 fw-semibold" id="weight" name="weight" value="{{ weight or user.get('weight') or 65 }}" required>
+                                <span class="input-group-text bg-light fw-medium">kg</span>
+                            </div>
+                            <input type="range" class="form-range" min="30" max="150" step="0.5" id="weightRange" value="{{ weight or user.get('weight') or 65 }}">
+                        </div>
+                    </div>
+
+                    <!-- Live Dynamic BMI Preview Card -->
+                    <div class="card bg-light border-0 rounded-3 p-4 mb-4 text-center position-relative shadow-sm" id="bmiPreviewCard">
+                        <div class="text-uppercase small tracking-wide text-muted fw-bold mb-2">Calculated Body Mass Index (BMI)</div>
+                        <div class="display-3 fw-bold my-1 brand-font text-teal" id="bmiNumberDisplay">--</div>
+                        <div>
+                            <span class="badge fs-6 px-3 py-2 rounded-pill shadow-sm" id="bmiCategoryBadge">Calculating...</span>
+                        </div>
+                        <p class="text-muted small mt-3 mb-0 mx-auto max-w-md" id="bmiInsightText">
+                            Enter your measurements above to see your health insights.
+                        </p>
+                    </div>
+
+                    <!-- Submit & Navigation Buttons -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-between align-items-center mt-4">
+                        <a href="{{ url_for('student.dashboard') }}" class="btn btn-outline-secondary px-4 py-2 rounded-3">
+                            <i class="bi bi-arrow-left me-1"></i> Skip / Back to Dashboard
+                        </a>
+                        <button type="submit" class="btn btn-primary-gradient px-5 py-2 rounded-3 fs-6">
+                            <i class="bi bi-check-circle-fill me-2"></i> Save Body Metrics
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const heightInput = document.getElementById('height');
+    const heightRange = document.getElementById('heightRange');
+    const heightValDisplay = document.getElementById('heightValDisplay');
+    
+    const weightInput = document.getElementById('weight');
+    const weightRange = document.getElementById('weightRange');
+    const weightValDisplay = document.getElementById('weightValDisplay');
+
+    const bmiNumberDisplay = document.getElementById('bmiNumberDisplay');
+    const bmiCategoryBadge = document.getElementById('bmiCategoryBadge');
+    const bmiInsightText = document.getElementById('bmiInsightText');
+
+    function updateBMI() {
+        const height = parseFloat(heightInput.value);
+        const weight = parseFloat(weightInput.value);
+
+        if (heightValDisplay) heightValDisplay.textContent = height ? height + ' cm' : '--';
+        if (weightValDisplay) weightValDisplay.textContent = weight ? weight + ' kg' : '--';
+
+        if (!height || !weight || height <= 0 || weight <= 0) {
+            bmiNumberDisplay.textContent = '--';
+            bmiCategoryBadge.textContent = 'Invalid Input';
+            bmiCategoryBadge.className = 'badge bg-secondary fs-6 px-3 py-2 rounded-pill';
+            bmiInsightText.textContent = 'Please enter valid height and weight values.';
+            return;
+        }
+
+        const heightM = height / 100.0;
+        const bmi = (weight / (heightM * heightM)).toFixed(1);
+        bmiNumberDisplay.textContent = bmi;
+
+        let category = '';
+        let badgeClass = '';
+        let tip = '';
+
+        if (bmi < 18.5) {
+            category = 'Underweight';
+            badgeClass = 'bg-info text-white';
+            tip = 'Consider nutrient-dense meals and strength training to build healthy muscle mass.';
+        } else if (bmi >= 18.5 && bmi < 25.0) {
+            category = 'Normal weight';
+            badgeClass = 'bg-success text-white';
+            tip = 'Great job! Maintain your balanced diet, regular exercise, and healthy sleep habits.';
+        } else if (bmi >= 25.0 && bmi < 30.0) {
+            category = 'Overweight';
+            badgeClass = 'bg-warning text-dark';
+            tip = 'Focus on active daily movement, portion control, and staying well-hydrated throughout the day.';
+        } else {
+            category = 'Obese';
+            badgeClass = 'bg-danger text-white';
+            tip = 'Prioritize daily brisk walks, balanced whole foods, and consulting a health professional for personalized guidance.';
+        }
+
+        bmiCategoryBadge.textContent = category;
+        bmiCategoryBadge.className = 'badge fs-6 px-3 py-2 rounded-pill shadow-sm ' + badgeClass;
+        bmiInsightText.textContent = tip;
+    }
+
+    // Sync input box and range slider
+    heightInput.addEventListener('input', function() {
+        heightRange.value = this.value;
+        updateBMI();
+    });
+    heightRange.addEventListener('input', function() {
+        heightInput.value = this.value;
+        updateBMI();
+    });
+
+    weightInput.addEventListener('input', function() {
+        weightRange.value = this.value;
+        updateBMI();
+    });
+    weightRange.addEventListener('input', function() {
+        weightInput.value = this.value;
+        updateBMI();
+    });
+
+    // Initial update
+    updateBMI();
+});
+</script>
+{% endblock %}
