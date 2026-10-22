@@ -3,7 +3,8 @@ from datetime import date
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from app.utils.decorators import student_required
 from app.utils.validation import validate_wellness_input
-from app.utils.bmi import calculate_bmi
+from app.utils.bmi import calculate_bmi, get_integrated_health_assessment
+from app.services.ml_service import predict_health_status, predict_lifestyle_risk
 from app.services.wellness import get_today_record, log_daily_wellness
 from app.services.gamification import calculate_current_streak, check_and_award_achievements
 from app.services.analytics import get_student_analytics_data
@@ -21,6 +22,9 @@ def body_metrics():
     if request.method == 'POST':
         height_raw = request.form.get('height', '').strip()
         weight_raw = request.form.get('weight', '').strip()
+        gender = request.form.get('gender', (user.get('gender') if user else 'Female') or 'Female').strip()
+        if gender not in ('Female', 'Male'):
+            gender = 'Female'
         
         errors = []
         try:
@@ -40,24 +44,120 @@ def body_metrics():
         if errors:
             for err in errors:
                 flash(err, 'danger')
-            return render_template('bmi_setup.html', user=user, height=height_raw, weight=weight_raw)
+            return render_template('bmi_setup.html', user=user, height=height_raw, weight=weight_raw, gender=gender)
             
         bmi_res = calculate_bmi(height, weight)
         if not bmi_res:
             flash("Could not calculate BMI with provided metrics.", "danger")
-            return render_template('bmi_setup.html', user=user, height=height_raw, weight=weight_raw)
+            return render_template('bmi_setup.html', user=user, height=height_raw, weight=weight_raw, gender=gender)
             
+        # Run ML Model 1: Body Metrics Health Status Classifier (Dataset 1)
+        ml_status = predict_health_status(gender=gender, height_cm=height, weight_kg=weight)
+        ml_health_status = ml_status.get('predicted_label') if ml_status.get('success') else None
+        
+        # Check if optional lifestyle questionnaire was completed
+        ml_lifestyle_risk = None
+        include_lifestyle = request.form.get('include_lifestyle') == '1'
+        if include_lifestyle:
+            try:
+                lifestyle_payload = {
+                    'Gender': gender,
+                    'Age': float(request.form.get('age', 21)),
+                    'Height': height,
+                    'Weight': weight,
+                    'family_history_with_overweight': request.form.get('family_history', 'no'),
+                    'FAVC': request.form.get('favc', 'no'),
+                    'FCVC': float(request.form.get('fcvc', 2.0)),
+                    'NCP': float(request.form.get('ncp', 3.0)),
+                    'CAEC': request.form.get('caec', 'Sometimes'),
+                    'SMOKE': request.form.get('smoke', 'no'),
+                    'CH2O': float(request.form.get('ch2o', 2.0)),
+                    'SCC': request.form.get('scc', 'no'),
+                    'FAF': float(request.form.get('faf', 1.0)),
+                    'TUE': float(request.form.get('tue', 1.0)),
+                    'CALC': request.form.get('calc', 'Sometimes'),
+                    'MTRANS': request.form.get('mtrans', 'Public_Transportation')
+                }
+                ml_ls_res = predict_lifestyle_risk(lifestyle_payload)
+                if ml_ls_res.get('success'):
+                    ml_lifestyle_risk = ml_ls_res.get('predicted_label')
+            except Exception:
+                ml_lifestyle_risk = None
+
+        # Update users table
         execute_query(
-            "UPDATE users SET height = %s, weight = %s, bmi = %s, bmi_category = %s WHERE id = %s",
-            (height, weight, bmi_res['bmi'], bmi_res['category'], user_id),
+            """UPDATE users 
+               SET height = %s, weight = %s, gender = %s, bmi = %s, bmi_category = %s, 
+                   ml_health_status = %s, ml_lifestyle_risk = %s 
+               WHERE id = %s""",
+            (height, weight, gender, bmi_res['bmi'], bmi_res['category'], ml_health_status, ml_lifestyle_risk, user_id),
             commit=True
         )
         
-        flash(f"Body metrics updated successfully! Your BMI is {bmi_res['bmi']} ({bmi_res['category']}).", "success")
+        # Store entry in bmi_history
+        execute_query(
+            """INSERT INTO bmi_history 
+               (user_id, height, weight, bmi, bmi_category, ml_health_status, ml_lifestyle_risk) 
+               VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+            (user_id, height, weight, bmi_res['bmi'], bmi_res['category'], ml_health_status, ml_lifestyle_risk),
+            commit=True
+        )
+        
+        flash_msg = f"Body metrics saved! BMI: {bmi_res['bmi_formatted']} ({bmi_res['category']})"
+        if ml_health_status:
+            flash_msg += f" | ML Health Status: {ml_health_status}"
+        flash(flash_msg, "success")
         return redirect(url_for('student.dashboard'))
         
-    bmi_info = calculate_bmi(user.get('height'), user.get('weight')) if user else None
-    return render_template('bmi_setup.html', user=user, bmi_info=bmi_info)
+    bmi_info = calculate_bmi(user.get('height'), user.get('weight')) if user and user.get('height') and user.get('weight') else None
+    assessment = get_integrated_health_assessment(
+        user.get('height'), user.get('weight'), gender=(user.get('gender') or 'Female')
+    ) if bmi_info else None
+    
+    bmi_history = execute_query(
+        "SELECT * FROM bmi_history WHERE user_id = %s ORDER BY recorded_at DESC LIMIT 7",
+        (user_id,),
+        fetchall=True
+    ) or []
+    
+    return render_template(
+        'bmi_setup.html',
+        user=user,
+        bmi_info=bmi_info,
+        assessment=assessment,
+        bmi_history=bmi_history
+    )
+
+@student_bp.route('/api/bmi/assess', methods=['POST'])
+@student_required
+def api_bmi_assess():
+    """
+    JSON API endpoint for real-time BMI and ML health prediction.
+    Accepts validated inputs, performs mathematical BMI & ML inferences, returns structured JSON.
+    """
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'success': False, 'error': 'Invalid JSON payload in request.'}), 400
+        
+    height_raw = data.get('height')
+    weight_raw = data.get('weight')
+    gender = data.get('gender', 'Female')
+    lifestyle_data = data.get('lifestyle')
+    
+    try:
+        height = float(height_raw)
+        weight = float(weight_raw)
+    except (ValueError, TypeError):
+        return jsonify({'success': False, 'error': 'Height and weight must be valid numeric values.'}), 400
+        
+    if not (40 <= height <= 300) or not (15 <= weight <= 400):
+        return jsonify({'success': False, 'error': 'Height must be between 40-300 cm and weight between 15-400 kg.'}), 400
+        
+    assessment = get_integrated_health_assessment(height, weight, gender=gender, lifestyle_data=lifestyle_data)
+    if not assessment.get('success'):
+        return jsonify(assessment), 400
+        
+    return jsonify(assessment), 200
 
 @student_bp.route('/dashboard')
 @student_required
@@ -88,6 +188,12 @@ def dashboard():
         fetchall=True
     )
     
+    bmi_history = execute_query(
+        "SELECT * FROM bmi_history WHERE user_id = %s ORDER BY recorded_at ASC LIMIT 7",
+        (user_id,),
+        fetchall=True
+    ) or []
+
     return render_template(
         'dashboard.html',
         user=user,
@@ -95,7 +201,8 @@ def dashboard():
         streak=streak,
         daily_tip=daily_tip,
         challenges=challenges,
-        bmi_info=bmi_info
+        bmi_info=bmi_info,
+        bmi_history=bmi_history
     )
 
 @student_bp.route('/wellness', methods=['GET', 'POST'])

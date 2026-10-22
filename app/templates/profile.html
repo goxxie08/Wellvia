@@ -36,8 +36,11 @@
                 {% if bmi_info %}
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <div class="fw-bold text-dark fs-5">{{ bmi_info.bmi }} <span class="badge" style="background-color: {{ bmi_info.badge_bg }}; font-size: 0.7rem;">{{ bmi_info.category }}</span></div>
+                            <div class="fw-bold text-dark fs-5">{{ bmi_info.bmi_formatted or bmi_info.bmi }} <span class="badge" style="background-color: {{ bmi_info.badge_bg }}; font-size: 0.7rem;">{{ bmi_info.category }}</span></div>
                             <div class="small text-muted">{{ user.height }} cm · {{ user.weight }} kg</div>
+                            {% if user.ml_health_status %}
+                                <div class="small text-teal fw-semibold mt-1"><i class="bi bi-cpu me-1"></i> ML Health Status: {{ user.ml_health_status }}</div>
+                            {% endif %}
                         </div>
                     </div>
                 {% else %}

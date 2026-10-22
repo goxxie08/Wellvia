@@ -83,15 +83,31 @@
                         <div class="p-3 border rounded-3 bg-light h-100">
                             <h6 class="fw-bold text-warning mb-3"><i class="bi bi-emoji-smile me-2"></i> Emotional State</h6>
                             <div class="mb-3">
-                                <label for="mood" class="form-label small fw-bold">Daily Mood</label>
-                                <select class="form-select form-select-custom" id="mood" name="mood">
-                                    <option value="">Select Mood...</option>
-                                    <option value="5" {% if record.mood == 5 %}selected{% endif %}>5 - Very Happy 😊</option>
-                                    <option value="4" {% if record.mood == 4 %}selected{% endif %}>4 - Happy 🙂</option>
-                                    <option value="3" {% if record.mood == 3 %}selected{% endif %}>3 - Neutral 😐</option>
-                                    <option value="2" {% if record.mood == 2 %}selected{% endif %}>2 - Sad 😔</option>
-                                    <option value="1" {% if record.mood == 1 %}selected{% endif %}>1 - Very Sad 😢</option>
-                                </select>
+                                <label class="form-label small fw-bold d-block">Daily Mood (Click to select)</label>
+                                <input type="hidden" id="mood" name="mood" value="{{ record.mood or '' }}">
+                                
+                                <div class="mood-selector-container">
+                                    <div class="mood-option-card mood-5 {% if record.mood == 5 %}selected{% endif %}" onclick="selectMood(5)">
+                                        <div class="mood-emoji">😊</div>
+                                        <div class="mood-label">Awesome</div>
+                                    </div>
+                                    <div class="mood-option-card mood-4 {% if record.mood == 4 %}selected{% endif %}" onclick="selectMood(4)">
+                                        <div class="mood-emoji">🙂</div>
+                                        <div class="mood-label">Happy</div>
+                                    </div>
+                                    <div class="mood-option-card mood-3 {% if record.mood == 3 %}selected{% endif %}" onclick="selectMood(3)">
+                                        <div class="mood-emoji">😐</div>
+                                        <div class="mood-label">Neutral</div>
+                                    </div>
+                                    <div class="mood-option-card mood-2 {% if record.mood == 2 %}selected{% endif %}" onclick="selectMood(2)">
+                                        <div class="mood-emoji">😔</div>
+                                        <div class="mood-label">Low</div>
+                                    </div>
+                                    <div class="mood-option-card mood-1 {% if record.mood == 1 %}selected{% endif %}" onclick="selectMood(1)">
+                                        <div class="mood-emoji">😢</div>
+                                        <div class="mood-label">Stressed</div>
+                                    </div>
+                                </div>
                             </div>
                             <div>
                                 <label for="stress_level" class="form-label small fw-bold">Stress Level</label>
@@ -139,4 +155,18 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function selectMood(value) {
+    document.getElementById('mood').value = value;
+    const cards = document.querySelectorAll('.mood-option-card');
+    cards.forEach(card => card.classList.remove('selected'));
+    const selectedCard = document.querySelector(`.mood-option-card.mood-${value}`);
+    if (selectedCard) {
+        selectedCard.classList.add('selected');
+    }
+}
+</script>
 {% endblock %}

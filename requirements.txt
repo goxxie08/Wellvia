@@ -4,3 +4,7 @@ pandas
 werkzeug
 python-dotenv
 pytest
+scikit-learn
+joblib
+numpy
+google-genai>=2.32.0

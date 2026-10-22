@@ -22,10 +22,26 @@ CREATE TABLE IF NOT EXISTS users (
     total_points INTEGER NOT NULL DEFAULT 0,
     height REAL NULL,
     weight REAL NULL,
+    gender TEXT NULL DEFAULT 'Female',
     bmi REAL NULL,
     bmi_category TEXT NULL,
+    ml_health_status TEXT NULL,
+    ml_lifestyle_risk TEXT NULL,
     is_active INTEGER NOT NULL DEFAULT 1,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS bmi_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    recorded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    height REAL NOT NULL,
+    weight REAL NOT NULL,
+    bmi REAL NOT NULL,
+    bmi_category TEXT NOT NULL,
+    ml_health_status TEXT NULL,
+    ml_lifestyle_risk TEXT NULL,
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS wellness_records (
@@ -147,7 +163,16 @@ def init_sqlite():
     
     # Auto-migrate missing columns for existing users table
     existing_cols = [row[1] for row in cursor.execute("PRAGMA table_info(users)").fetchall()]
-    for col_name, col_type in [('height', 'REAL'), ('weight', 'REAL'), ('bmi', 'REAL'), ('bmi_category', 'TEXT')]:
+    migration_cols = [
+        ('height', 'REAL'),
+        ('weight', 'REAL'),
+        ('gender', 'TEXT'),
+        ('bmi', 'REAL'),
+        ('bmi_category', 'TEXT'),
+        ('ml_health_status', 'TEXT'),
+        ('ml_lifestyle_risk', 'TEXT')
+    ]
+    for col_name, col_type in migration_cols:
         if col_name not in existing_cols:
             cursor.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type} NULL")
             print(f"[+] Migrated column '{col_name}' ({col_type}) into 'users' table.")

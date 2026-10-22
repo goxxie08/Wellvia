@@ -6,12 +6,12 @@
 <!-- Header / Greeting Section -->
 <div class="row mb-4 align-items-center">
     <div class="col-md-8">
-        <h1 class="fw-bold mb-1">Hello, {{ session.get('username') }} 👋</h1>
-        <p class="text-muted">Here is your daily well-being snapshot and habit consistency progress.</p>
+        <h1 class="fw-bold mb-1">Hello, {{ session.get('username') }} ✨</h1>
+        <p class="text-muted mb-0">Welcome back! Here is your daily well-being snapshot and habit consistency progress.</p>
     </div>
-    <div class="col-md-4 text-md-end">
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
         <a href="{{ url_for('student.log_wellness') }}" class="btn btn-primary-gradient py-2 px-4 shadow">
-            <i class="bi bi-pencil-square me-2"></i> Log Today's Wellness
+            <i class="bi bi-pencil-square me-2"></i> 📝 Log Today's Metrics
         </a>
     </div>
 </div>
@@ -21,7 +21,7 @@
     <!-- Wellness Score Card -->
     <div class="col-12 col-sm-6 col-lg-3">
         <div class="stat-card score-card shadow-sm h-100">
-            <div class="stat-label">Today's Wellness Score</div>
+            <div class="stat-label">💖 Daily Wellness Score</div>
             <div class="stat-value">
                 {% if today_record and today_record.wellness_score is not none %}
                     {{ today_record.wellness_score }}<span style="font-size: 1.2rem; opacity: 0.8;">/100</span>
@@ -30,7 +30,7 @@
                 {% endif %}
             </div>
             <p class="small mb-0 mt-2 opacity-75">
-                <i class="bi bi-info-circle me-1"></i> Self-awareness score
+                <i class="bi bi-info-circle me-1"></i> Self-awareness index
             </p>
             <i class="bi bi-heart-pulse-fill stat-icon"></i>
         </div>
@@ -39,10 +39,10 @@
     <!-- Habit Streak Card -->
     <div class="col-12 col-sm-6 col-lg-3">
         <div class="stat-card streak-card shadow-sm h-100">
-            <div class="stat-label">Logging Streak</div>
-            <div class="stat-value">{{ streak }} <span style="font-size: 1.2rem; opacity: 0.9;">Days 🔥</span></div>
+            <div class="stat-label">🔥 Habit Streak</div>
+            <div class="stat-value">{{ streak }} <span style="font-size: 1.2rem; opacity: 0.9;">Days</span></div>
             <p class="small mb-0 mt-2 opacity-75">
-                Keep up daily consistency!
+                Keep up daily consistency! ⚡
             </p>
             <i class="bi bi-fire stat-icon"></i>
         </div>
@@ -51,10 +51,10 @@
     <!-- Accumulated Points Card -->
     <div class="col-12 col-sm-6 col-lg-3">
         <div class="stat-card points-card shadow-sm h-100">
-            <div class="stat-label">Total Points</div>
-            <div class="stat-value">{{ user.total_points }} <span style="font-size: 1.2rem; opacity: 0.9;">Pts 🌟</span></div>
+            <div class="stat-label">🌟 Total Points</div>
+            <div class="stat-value">{{ user.total_points }} <span style="font-size: 1.2rem; opacity: 0.9;">Pts</span></div>
             <p class="small mb-0 mt-2 opacity-75">
-                Earned via habits & quests.
+                Earned via habits & quests 🏆
             </p>
             <i class="bi bi-award-fill stat-icon"></i>
         </div>
@@ -64,25 +64,30 @@
     <div class="col-12 col-sm-6 col-lg-3">
         <div class="stat-card shadow-sm h-100 text-white" style="background: linear-gradient(135deg, #0284c7 0%, #0d9488 100%);">
             <div class="d-flex justify-content-between align-items-start">
-                <div class="stat-label">Body Mass Index (BMI)</div>
+                <div class="stat-label">⚖️ Body Metrics & ML</div>
                 <a href="{{ url_for('student.body_metrics') }}" class="text-white opacity-75 text-decoration-none small hover-opacity-100">
-                    <i class="bi bi-pencil-square"></i> Update
+                    <i class="bi bi-pencil-square"></i> Assess
                 </a>
             </div>
             <div class="stat-value">
                 {% if bmi_info %}
-                    {{ bmi_info.bmi }} <span class="badge bg-white text-dark ms-1" style="font-size: 0.75rem; vertical-align: middle;">{{ bmi_info.category }}</span>
+                    {{ bmi_info.bmi_formatted or bmi_info.bmi }} <span class="badge bg-white text-dark ms-1" style="font-size: 0.75rem; vertical-align: middle;">{{ bmi_info.category }}</span>
                 {% else %}
                     <span style="font-size: 1.2rem; opacity: 0.9;">Not Set</span>
                 {% endif %}
             </div>
-            <p class="small mb-0 mt-2 opacity-75">
+            <div class="small mb-0 mt-2 opacity-90">
                 {% if user.height and user.weight %}
-                    {{ user.height }} cm | {{ user.weight }} kg
+                    <div>📏 {{ user.height }} cm | 🏋️ {{ user.weight }} kg</div>
+                    {% if user.ml_health_status %}
+                        <div class="mt-1 badge bg-white-20 text-white border border-white-50 px-2 py-1 rounded-pill" style="font-size: 0.72rem; background: rgba(255,255,255,0.2);">
+                            <i class="bi bi-cpu me-1"></i> ML: {{ user.ml_health_status }}
+                        </div>
+                    {% endif %}
                 {% else %}
                     <a href="{{ url_for('student.body_metrics') }}" class="text-white text-decoration-underline">Set Height & Weight</a>
                 {% endif %}
-            </p>
+            </div>
             <i class="bi bi-person-bounding-box stat-icon"></i>
         </div>
     </div>
@@ -94,7 +99,7 @@
     <div class="col-lg-8">
         <div class="card card-custom p-4 h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="fw-bold mb-0"><i class="bi bi-calendar-check me-2 text-teal"></i> Today's Tracked Activities</h5>
+                <h5 class="fw-bold mb-0"><i class="bi bi-calendar-check me-2 text-teal"></i> 📊 Today's Tracked Activities</h5>
                 <a href="{{ url_for('student.log_wellness') }}" class="small text-teal text-decoration-none fw-semibold">Edit Logs <i class="bi bi-arrow-right"></i></a>
             </div>
 
@@ -102,47 +107,61 @@
                 <div class="row g-3 mt-1">
                     <div class="col-6 col-md-4">
                         <div class="p-3 border rounded-3 bg-light">
-                            <div class="text-muted small">Sleep</div>
+                            <div class="text-muted small">😴 Restful Sleep</div>
                             <div class="fw-bold text-dark fs-5">
                                 {{ today_record.sleep_hours or '—' }} <span class="fs-6 text-muted">hrs</span>
                             </div>
-                            <small class="text-muted">Quality: {{ today_record.sleep_quality or '—' }}/5</small>
+                            <small class="text-muted">Quality: {{ today_record.sleep_quality or '—' }}/5 💤</small>
+                        </div>
+                    </div>
+
+                    <div class="col-6 col-md-4">
+                        <div class="p-3 border rounded-3 bg-light h-100 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="text-muted small">💧 Hydration</div>
+                                    <span class="badge bg-primary-subtle text-primary" id="waterGoalBadge">Target: 8</span>
+                                </div>
+                                <div class="fw-bold text-dark fs-5 mt-1">
+                                    <span id="quickWaterCount">{{ today_record.water_glasses or 0 }}</span> <span class="fs-6 text-muted">glasses</span>
+                                </div>
+                            </div>
+
+                            <!-- Interactive Quick Water Controls -->
+                            <div class="mt-2">
+                                {% set water_val = today_record.water_glasses if today_record and today_record.water_glasses else 0 %}
+                                {% set water_pct = (water_val / 8 * 100) %}
+                                <div class="progress progress-custom mb-2" style="height: 8px;">
+                                    <div id="quickWaterProgressBar" class="progress-bar progress-bar-custom" style="width: {{ water_pct if water_pct <= 100 else 100 }}%;"></div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <button type="button" class="water-btn-circle" onclick="updateQuickWater(-1)" title="Remove 1 glass">-</button>
+                                    <small class="text-muted fw-semibold">Quick Log</small>
+                                    <button type="button" class="water-btn-circle" onclick="updateQuickWater(1)" title="Add 1 glass">+</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <div class="col-6 col-md-4">
                         <div class="p-3 border rounded-3 bg-light">
-                            <div class="text-muted small">Hydration</div>
-                            <div class="fw-bold text-dark fs-5">
-                                {{ today_record.water_glasses or '—' }} <span class="fs-6 text-muted">glasses</span>
-                            </div>
-                            <!-- Hydration Progress Bar -->
-                            {% set water_pct = (today_record.water_glasses / 8 * 100) if today_record.water_glasses else 0 %}
-                            <div class="progress progress-custom mt-2" style="height: 6px;">
-                                <div class="progress-bar progress-bar-custom" style="width: {{ water_pct if water_pct <= 100 else 100 }}%;"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-6 col-md-4">
-                        <div class="p-3 border rounded-3 bg-light">
-                            <div class="text-muted small">Exercise</div>
+                            <div class="text-muted small">🏃 Physical Exercise</div>
                             <div class="fw-bold text-dark fs-5">
                                 {{ today_record.exercise_duration or '0' }} <span class="fs-6 text-muted">mins</span>
                             </div>
-                            <small class="text-muted">{{ today_record.exercise_type or 'None logged' }}</small>
+                            <small class="text-muted">🏃‍♂️ {{ today_record.exercise_type or 'None logged' }}</small>
                         </div>
                     </div>
 
                     <div class="col-6 col-md-4">
                         <div class="p-3 border rounded-3 bg-light">
-                            <div class="text-muted small">Mood</div>
+                            <div class="text-muted small">🌈 Mood</div>
                             <div class="fw-bold text-dark fs-5">
-                                {% if today_record.mood == 5 %}Very Happy 😊
-                                {% elif today_record.mood == 4 %}Happy 🙂
-                                {% elif today_record.mood == 3 %}Neutral 😐
-                                {% elif today_record.mood == 2 %}Sad 😔
-                                {% elif today_record.mood == 1 %}Very Sad 😢
+                                {% if today_record.mood == 5 %}Awesome 😊
+                                {% elif today_record.mood == 4 %}Good 🙂
+                                {% elif today_record.mood == 3 %}Okay 😐
+                                {% elif today_record.mood == 2 %}Low 😔
+                                {% elif today_record.mood == 1 %}Stressed 😢
                                 {% else %}—{% endif %}
                             </div>
                         </div>
@@ -150,29 +169,30 @@
 
                     <div class="col-6 col-md-4">
                         <div class="p-3 border rounded-3 bg-light">
-                            <div class="text-muted small">Stress Level</div>
+                            <div class="text-muted small">🧘 Stress Level</div>
                             <div class="fw-bold text-dark fs-5">
                                 {{ today_record.stress_level or '—' }} <span class="fs-6 text-muted">/ 5</span>
                             </div>
+                            <small class="text-muted">{% if today_record.stress_level and today_record.stress_level <= 2 %}Low Stress 🌿{% else %}Elevated ⚡{% endif %}</small>
                         </div>
                     </div>
 
                     <div class="col-6 col-md-4">
                         <div class="p-3 border rounded-3 bg-light">
-                            <div class="text-muted small">Study Time</div>
+                            <div class="text-muted small">📚 Academic Study</div>
                             <div class="fw-bold text-dark fs-5">
                                 {{ today_record.study_hours or '—' }} <span class="fs-6 text-muted">hrs</span>
                             </div>
-                            <small class="text-muted">{{ today_record.study_subject or 'General' }}</small>
+                            <small class="text-muted">📖 {{ today_record.study_subject or 'General' }}</small>
                         </div>
                     </div>
                 </div>
             {% else %}
                 <div class="text-center py-5">
                     <i class="bi bi-pencil-square display-4 text-muted mb-3 d-block"></i>
-                    <p class="text-muted">You haven't recorded any wellness metrics for today yet.</p>
+                    <p class="text-muted">You haven't recorded any wellness metrics for today yet. 📝</p>
                     <a href="{{ url_for('student.log_wellness') }}" class="btn btn-primary-gradient">
-                        <i class="bi bi-plus-circle me-1"></i> Log Today's Metrics Now
+                        <i class="bi bi-plus-circle me-1"></i> Log Today's Metrics Now ✨
                     </a>
                 </div>
             {% endif %}
@@ -185,9 +205,9 @@
             <div class="card card-custom p-4">
                 <div class="d-flex align-items-center mb-2">
                     <i class="bi bi-lightbulb-fill text-warning fs-4 me-2"></i>
-                    <h6 class="fw-bold mb-0 text-dark">Tip of the Day ({{ daily_tip.category }})</h6>
+                    <h6 class="fw-bold mb-0 text-dark">💡 Tip of the Day ({{ daily_tip.category }})</h6>
                 </div>
-                <p class="small text-secondary mb-0">"{{ daily_tip.content }}"</p>
+                <p class="small text-secondary mb-0">"{{ daily_tip.content }}" 🌸</p>
             </div>
         {% endif %}
     </div>
@@ -197,7 +217,7 @@
 {% if challenges %}
 <div class="card card-custom p-4 mb-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="fw-bold mb-0"><i class="bi bi-trophy-fill me-2 text-warning"></i> Active Daily Challenges</h5>
+        <h5 class="fw-bold mb-0"><i class="bi bi-trophy-fill me-2 text-warning"></i> 🎯 Active Daily Quests & Challenges</h5>
         <a href="{{ url_for('student.challenges') }}" class="small text-teal text-decoration-none fw-semibold">View All Challenges <i class="bi bi-arrow-right"></i></a>
     </div>
 
@@ -208,18 +228,18 @@
                     <div>
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <h6 class="fw-bold mb-0">{{ ch.title }}</h6>
-                            <span class="badge bg-primary-subtle text-primary">+{{ ch.points }} Pts</span>
+                            <span class="badge bg-primary-subtle text-primary">+{{ ch.points }} Pts 🌟</span>
                         </div>
                         <p class="small text-muted mb-3">{{ ch.description }}</p>
                     </div>
 
                     <div>
                         {% if ch.is_completed %}
-                            <span class="badge bg-success text-white w-100 py-2"><i class="bi bi-check-circle me-1"></i> Completed Today</span>
+                            <span class="badge bg-success text-white w-100 py-2"><i class="bi bi-check-circle me-1"></i> Completed Today 🎉</span>
                         {% else %}
                             <form action="{{ url_for('student.complete_challenge', challenge_id=ch.id) }}" method="POST">
                                 <button type="submit" class="btn btn-outline-success btn-sm w-100">
-                                    Mark Completed
+                                    Mark Completed ✨
                                 </button>
                             </form>
                         {% endif %}
@@ -231,4 +251,32 @@
 </div>
 {% endif %}
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentWater = parseInt(document.getElementById('quickWaterCount').innerText) || 0;
+
+function updateQuickWater(delta) {
+    currentWater = Math.max(0, currentWater + delta);
+    document.getElementById('quickWaterCount').innerText = currentWater;
+    
+    const pct = Math.min(100, (currentWater / 8) * 100);
+    const progressBar = document.getElementById('quickWaterProgressBar');
+    if (progressBar) {
+        progressBar.style.width = pct + '%';
+    }
+
+    const badge = document.getElementById('waterGoalBadge');
+    if (badge) {
+        if (currentWater >= 8) {
+            badge.className = 'badge bg-success text-white';
+            badge.innerText = 'Goal Met! 🎉';
+        } else {
+            badge.className = 'badge bg-primary-subtle text-primary';
+            badge.innerText = 'Target: 8';
+        }
+    }
+}
+</script>
 {% endblock %}

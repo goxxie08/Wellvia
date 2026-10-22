@@ -22,6 +22,25 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <!-- Floating Background Elements -->
+    <div class="background-elements">
+        <div class="animated-bg-blob blob-1"></div>
+        <div class="animated-bg-blob blob-2"></div>
+        <!-- Cute Floating Icons & Twinkling Stars -->
+        <div class="floating-icon icon-1"><i class="bi bi-heart-pulse-fill"></i></div>
+        <div class="floating-icon icon-2"><i class="bi bi-droplet-fill"></i></div>
+        <div class="floating-icon icon-3"><i class="bi bi-moon-stars-fill"></i></div>
+        <div class="floating-icon icon-4"><i class="bi bi-fire"></i></div>
+        <div class="floating-icon icon-5"><i class="bi bi-journal-bookmark-fill"></i></div>
+
+        <!-- Cute Twinkling Pastel Stars & Sparkles -->
+        <div class="floating-star star-1"><i class="bi bi-stars"></i></div>
+        <div class="floating-star star-2"><i class="bi bi-star-fill"></i></div>
+        <div class="floating-star star-3"><i class="bi bi-sparkles"></i></div>
+        <div class="floating-star star-4"><i class="bi bi-star-fill"></i></div>
+        <div class="floating-star star-5"><i class="bi bi-sparkles"></i></div>
+        <div class="floating-star star-6"><i class="bi bi-stars"></i></div>
+    </div>
 
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top">
@@ -190,6 +209,28 @@
         </div>
     </div>
 
+    <!-- Barnaby the Cute Bear Wellness Mascot -->
+    <div id="bearMascotContainer" class="bear-mascot-container position-fixed bottom-0 end-0 m-3 m-md-4">
+        <!-- Mascot Speech Bubble -->
+        <div id="mascotSpeechBubble" class="mascot-speech-bubble shadow-sm p-3 rounded-4 bg-white border mb-2 text-dark position-relative">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+                <span class="fw-bold small text-teal">Barnaby 🐻🌿</span>
+                <button type="button" class="btn-close ms-2" style="font-size: 0.65rem;" onclick="toggleMascotBubble()" aria-label="Close message"></button>
+            </div>
+            <p id="mascotSpeechText" class="small mb-0 text-secondary" style="font-size: 0.85rem;">
+                Hi! I'm Barnaby 🐻✨ Click me anytime for wellness advice!
+            </p>
+        </div>
+        
+        <!-- Bear Mascot Button -->
+        <button id="bearMascotBtn" type="button" class="bear-mascot-btn border-0 rounded-circle shadow-lg d-flex align-items-center justify-content-center p-0" onclick="onBearClick()" title="Click Barnaby for wellness advice!">
+            <div class="bear-avatar">
+                <span class="bear-emoji">🐻</span>
+                <span class="bear-leaf">🌿</span>
+            </div>
+        </button>
+    </div>
+
     <!-- Footer -->
     <footer class="text-center text-md-start mt-auto pb-5 pb-lg-0">
         <div class="container py-3">
@@ -254,6 +295,89 @@
                 if (installBanner) installBanner.classList.add('d-none');
                 localStorage.setItem('pwaPromptDismissed', 'true');
             });
+        }
+
+        // Interactive Mouse Cursor Tracking Parallax Effect
+        let mouseX = 0, mouseY = 0;
+        let targetX = 0, targetY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            targetX = (e.clientX / window.innerWidth - 0.5);
+            targetY = (e.clientY / window.innerHeight - 0.5);
+        });
+
+        function animateParallax() {
+            mouseX += (targetX - mouseX) * 0.08;
+            mouseY += (targetY - mouseY) * 0.08;
+
+            const blobs = document.querySelectorAll('.animated-bg-blob');
+            blobs.forEach((blob, idx) => {
+                const depth = (idx + 1) * 35;
+                blob.style.transform = `translate(${mouseX * depth}px, ${mouseY * depth}px)`;
+            });
+
+            const icons = document.querySelectorAll('.floating-icon');
+            icons.forEach((icon, idx) => {
+                const depth = (idx + 1) * 25;
+                const rot = mouseX * 18;
+                icon.style.transform = `translate(${mouseX * depth}px, ${mouseY * depth}px) rotate(${rot}deg)`;
+            });
+
+            const stars = document.querySelectorAll('.floating-star');
+            stars.forEach((star, idx) => {
+                const depth = (idx + 1) * 30;
+                const rot = mouseX * 22;
+                star.style.transform = `translate(${mouseX * depth}px, ${mouseY * depth}px) rotate(${rot}deg)`;
+            });
+
+            requestAnimationFrame(animateParallax);
+        }
+        animateParallax();
+
+        // Global Interactive Click Spark Burst
+        document.addEventListener('click', (e) => {
+            const spark = document.createElement('div');
+            spark.className = 'click-spark';
+            spark.style.left = e.clientX + 'px';
+            spark.style.top = e.clientY + 'px';
+            document.body.appendChild(spark);
+            setTimeout(() => spark.remove(), 550);
+        });
+
+        // Barnaby the Wellness Bear Mascot Guide Script
+        const barnabyTips = [
+            "Hi! I'm Barnaby 🐻✨ Don't forget to drink at least 8 glasses of water today! 💧",
+            "Taking a 5-minute stretch break every hour keeps your mind sharp! 🏃‍♂️",
+            "Aim for 7 to 9 hours of restful sleep to boost your memory & mood 😴",
+            "Feeling stressed? Try 4s inhale, 7s hold, 8s exhale breathing 🧘",
+            "You're doing amazing! Keep your habit logging streak alive 🔥",
+            "Log your daily metrics to track progress & earn reward points 🌟",
+            "Balancing study time with rest is the key to preventing burnout 📚"
+        ];
+        let tipIndex = 0;
+
+        function onBearClick() {
+            const bearBtn = document.getElementById('bearMascotBtn');
+            const bubble = document.getElementById('mascotSpeechBubble');
+            const text = document.getElementById('mascotSpeechText');
+
+            if (bearBtn) {
+                bearBtn.classList.remove('bear-bounce-active');
+                void bearBtn.offsetWidth; // trigger reflow
+                bearBtn.classList.add('bear-bounce-active');
+            }
+
+            if (bubble) bubble.style.display = 'block';
+            
+            tipIndex = (tipIndex + 1) % barnabyTips.length;
+            if (text) text.innerText = barnabyTips[tipIndex];
+        }
+
+        function toggleMascotBubble() {
+            const bubble = document.getElementById('mascotSpeechBubble');
+            if (bubble) {
+                bubble.style.display = bubble.style.display === 'none' ? 'block' : 'none';
+            }
         }
     </script>
 

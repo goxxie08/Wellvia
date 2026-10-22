@@ -126,6 +126,82 @@ function renderStudentCharts(chartData) {
             }
         });
     }
+
+    // 5. BMI & Weight Longitudinal Trend Chart
+    const ctxBmiWeight = document.getElementById('chartBmiWeight');
+    if (ctxBmiWeight && chartData.bmi_history && chartData.bmi_history.labels && chartData.bmi_history.labels.length > 0) {
+        new Chart(ctxBmiWeight, {
+            type: 'line',
+            data: {
+                labels: chartData.bmi_history.labels,
+                datasets: [
+                    {
+                        label: 'BMI',
+                        data: chartData.bmi_history.bmi,
+                        borderColor: '#0d9488',
+                        backgroundColor: 'rgba(13, 148, 136, 0.15)',
+                        borderWidth: 3,
+                        tension: 0.3,
+                        yAxisID: 'yBMI',
+                        pointRadius: 5,
+                        pointBackgroundColor: '#0d9488',
+                        pointHoverRadius: 7
+                    },
+                    {
+                        label: 'Weight (kg)',
+                        data: chartData.bmi_history.weight,
+                        borderColor: '#6366f1',
+                        borderDash: [5, 5],
+                        borderWidth: 2,
+                        tension: 0.3,
+                        yAxisID: 'yWeight',
+                        pointRadius: 4,
+                        pointBackgroundColor: '#6366f1',
+                        pointHoverRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            afterBody: function(tooltipItems) {
+                                const idx = tooltipItems[0].dataIndex;
+                                const category = chartData.bmi_history.categories ? chartData.bmi_history.categories[idx] : '';
+                                const status = chartData.bmi_history.ml_status ? chartData.bmi_history.ml_status[idx] : '';
+                                let extra = '';
+                                if (category) extra += `Standard: ${category}\n`;
+                                if (status) extra += `ML Status: ${status}`;
+                                return extra;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    yBMI: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: { display: true, text: 'BMI' },
+                        suggestedMin: 16,
+                        suggestedMax: 32
+                    },
+                    yWeight: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: { display: true, text: 'Weight (kg)' },
+                        grid: { drawOnChartArea: false }
+                    }
+                }
+            }
+        });
+    }
 }
 
 function renderAdminCharts(analytics) {

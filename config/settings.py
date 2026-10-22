@@ -12,6 +12,10 @@ class Config:
     MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD', '')
     MYSQL_DB = os.environ.get('MYSQL_DB', 'wellness_db')
     
+    # Gemini AI configuration (server-side only)
+    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+    GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
+    
     # Session security settings
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'

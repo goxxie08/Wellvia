@@ -1,22 +1,43 @@
 {% extends "base.html" %}
 
-{% block title %}Body Metrics & BMI Setup{% endblock %}
+{% block title %}Body Metrics & ML Health Assessment{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center align-items-center my-4">
-    <div class="col-lg-8 col-xl-7">
+    <div class="col-lg-10 col-xl-9">
         <div class="card card-custom shadow-lg border-0 rounded-4 overflow-hidden">
             <!-- Header Banner -->
             <div class="card-gradient-header p-4 text-center">
                 <div class="d-inline-flex align-items-center justify-content-center bg-white text-teal rounded-circle mb-3 shadow-sm" style="width: 64px; height: 64px;">
-                    <i class="bi bi-person-heart display-6"></i>
+                    <i class="bi bi-heart-pulse-fill display-6"></i>
                 </div>
-                <h3 class="fw-bold mb-1">Body Metrics & BMI Setup</h3>
-                <p class="mb-0 text-white-50 small">Enter your height and weight to track your Body Mass Index (BMI) and health category.</p>
+                <h3 class="fw-bold mb-1">Body Metrics & ML Health Assessment</h3>
+                <p class="mb-0 text-white-50 small">Calculate your official Body Mass Index (BMI) and receive real-time Machine Learning Health-Status predictions.</p>
             </div>
 
             <div class="card-body p-4 p-md-5">
                 <form method="POST" action="{{ url_for('student.body_metrics') }}" id="bmiForm">
+                    <!-- Biological Gender Selection for Dataset 1 Model -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-gender-ambiguous text-teal me-1"></i> Biological Gender <small class="text-muted fw-normal">(Calibrates ML Model 1)</small></span>
+                        </label>
+                        <div class="d-flex gap-3">
+                            <div class="form-check form-check-inline p-2 border rounded-3 flex-fill text-center bg-white shadow-xs">
+                                <input class="form-check-input" type="radio" name="gender" id="genderFemale" value="Female" {% if (gender or user.get('gender') or 'Female') == 'Female' %}checked{% endif %}>
+                                <label class="form-check-label fw-semibold ms-1" for="genderFemale">
+                                    <i class="bi bi-gender-female text-danger me-1"></i> Female
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline p-2 border rounded-3 flex-fill text-center bg-white shadow-xs">
+                                <input class="form-check-input" type="radio" name="gender" id="genderMale" value="Male" {% if (gender or user.get('gender')) == 'Male' %}checked{% endif %}>
+                                <label class="form-check-label fw-semibold ms-1" for="genderMale">
+                                    <i class="bi bi-gender-male text-primary me-1"></i> Male
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="row g-4 mb-4">
                         <!-- Height Input -->
                         <div class="col-md-6">
@@ -29,6 +50,7 @@
                                 <span class="input-group-text bg-light fw-medium">cm</span>
                             </div>
                             <input type="range" class="form-range" min="100" max="220" step="0.5" id="heightRange" value="{{ height or user.get('height') or 170 }}">
+                            <small class="text-muted d-block mt-1">Standard adult range: 50 – 250 cm</small>
                         </div>
 
                         <!-- Weight Input -->
@@ -42,31 +64,339 @@
                                 <span class="input-group-text bg-light fw-medium">kg</span>
                             </div>
                             <input type="range" class="form-range" min="30" max="150" step="0.5" id="weightRange" value="{{ weight or user.get('weight') or 65 }}">
+                            <small class="text-muted d-block mt-1">Standard adult range: 20 – 300 kg</small>
                         </div>
                     </div>
 
-                    <!-- Live Dynamic BMI Preview Card -->
-                    <div class="card bg-light border-0 rounded-3 p-4 mb-4 text-center position-relative shadow-sm" id="bmiPreviewCard">
-                        <div class="text-uppercase small tracking-wide text-muted fw-bold mb-2">Calculated Body Mass Index (BMI)</div>
-                        <div class="display-3 fw-bold my-1 brand-font text-teal" id="bmiNumberDisplay">--</div>
-                        <div>
-                            <span class="badge fs-6 px-3 py-2 rounded-pill shadow-sm" id="bmiCategoryBadge">Calculating...</span>
+                    <!-- Live Dynamic Integrated Health Assessment Card -->
+                    <div class="card bg-white border border-light-subtle rounded-4 p-4 mb-4 shadow-sm" id="bmiPreviewCard">
+                        <div class="row align-items-center g-4">
+                            <!-- Left: Mathematical BMI Calculation & Visual Spectrum Gauge -->
+                            <div class="col-lg-5 text-center border-end-lg pb-3 pb-lg-0">
+                                <div class="text-uppercase small tracking-wide text-muted fw-bold mb-1">
+                                    <i class="bi bi-calculator me-1 text-teal"></i> Mathematical BMI (WHO)
+                                </div>
+                                <div class="display-3 fw-bold my-1 brand-font text-teal" id="bmiNumberDisplay">--</div>
+                                <div class="mb-2">
+                                    <span class="badge fs-6 px-3 py-2 rounded-pill shadow-sm" id="bmiCategoryBadge">Calculating...</span>
+                                </div>
+                                <div class="small text-muted mb-3" id="bmiFormulaText">
+                                    Formula: <code>Weight(kg) / Height(m)²</code>
+                                </div>
+
+                                <!-- Interactive BMI Category Spectrum Bar -->
+                                <div class="bmi-spectrum-wrapper px-2 text-start">
+                                    <div class="d-flex justify-content-between text-muted fw-bold mb-1" style="font-size: 0.65rem;">
+                                        <span class="text-info"><i class="bi bi-circle-fill"></i> Under</span>
+                                        <span class="text-success"><i class="bi bi-circle-fill"></i> Normal</span>
+                                        <span class="text-warning"><i class="bi bi-circle-fill"></i> Over</span>
+                                        <span class="text-danger"><i class="bi bi-circle-fill"></i> Obese</span>
+                                    </div>
+                                    <div class="position-relative my-2" style="height: 12px; border-radius: 999px; background: linear-gradient(to right, #0284c7 0%, #0284c7 20%, #10b981 20%, #10b981 50%, #f59e0b 50%, #f59e0b 75%, #ef4444 75%, #ef4444 100%);">
+                                        <div id="bmiNeedleMarker" class="position-absolute shadow" style="width: 20px; height: 20px; background: #ffffff; border: 3.5px solid #0f172a; border-radius: 50%; top: -4px; transform: translateX(-50%); transition: left 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275); left: 35%;" title="Current BMI position"></div>
+                                    </div>
+                                    <div class="d-flex justify-content-between text-muted fw-semibold" style="font-size: 0.62rem;">
+                                        <span>15</span>
+                                        <span>18.5</span>
+                                        <span>25.0</span>
+                                        <span>30.0</span>
+                                        <span>40+</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right: Machine Learning Health Status Prediction -->
+                            <div class="col-lg-7">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="text-uppercase small tracking-wide text-muted fw-bold">
+                                        <i class="bi bi-cpu-fill me-1 text-primary"></i> ML Health-Status Prediction
+                                    </span>
+                                    <span class="badge bg-secondary-subtle text-secondary rounded-pill" id="mlConfidenceBadge">
+                                        Model 1 (Random Forest)
+                                    </span>
+                                </div>
+
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <h4 class="fw-bold mb-0 text-dark" id="mlCategoryDisplay">Analyzing metrics...</h4>
+                                </div>
+
+                                <p class="text-secondary small mb-2" id="mlExplanationText">
+                                    Enter your height and weight above to evaluate your ML health classification.
+                                </p>
+
+                                <div class="p-3 bg-light rounded-3 border-start border-3 border-teal mt-2" id="wellnessSuggestionsBox">
+                                    <div class="fw-semibold text-dark small mb-1">
+                                        <i class="bi bi-lightbulb-fill text-warning me-1"></i> Non-Medical Wellness Guidance:
+                                    </div>
+                                    <ul class="mb-0 small text-muted ps-3" id="wellnessSuggestionsList">
+                                        <li>Maintain balanced meals, daily physical movement, and sufficient hydration.</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
-                        <p class="text-muted small mt-3 mb-0 mx-auto max-w-md" id="bmiInsightText">
-                            Enter your measurements above to see your health insights.
-                        </p>
+                    </div>
+
+                    <!-- Auto-Recommended Challenges & Action Plan Card -->
+                    <div class="card border border-light-subtle rounded-4 p-4 mb-4 shadow-sm bg-white" id="actionPlanCard">
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-3 gap-2">
+                            <div>
+                                <h6 class="fw-bold text-dark mb-0"><i class="bi bi-bullseye text-teal me-2"></i> Tailored Challenges & Focus Targets</h6>
+                                <small class="text-muted" id="actionPlanFocus">Actionable wellness habits suggested for your current metrics</small>
+                            </div>
+                            <span class="badge bg-teal-subtle text-teal border border-teal-subtle rounded-pill px-3 py-1 align-self-start align-self-sm-auto" id="actionPlanTheme">
+                                Daily Focus
+                            </span>
+                        </div>
+                        <div class="row g-3" id="actionPlanChallengesRow">
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-3 border h-100 d-flex flex-column justify-content-between">
+                                    <div>
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="fw-bold text-dark small"><i class="bi bi-droplet-fill text-info me-1"></i> Hydration Boost</span>
+                                            <span class="badge bg-primary text-white">+20 Pts</span>
+                                        </div>
+                                        <p class="small text-muted mb-0">Drink at least 8 glasses of water throughout your study day.</p>
+                                    </div>
+                                    <div class="mt-2 text-end">
+                                        <a href="{{ url_for('student.challenges') }}" class="btn btn-sm btn-outline-teal py-0 px-2" style="font-size: 0.75rem;">View Challenge</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-3 border h-100 d-flex flex-column justify-content-between">
+                                    <div>
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="fw-bold text-dark small"><i class="bi bi-activity text-teal me-1"></i> Weekly Exercise Master</span>
+                                            <span class="badge bg-primary text-white">+50 Pts</span>
+                                        </div>
+                                        <p class="small text-muted mb-0">Complete at least 3 active sessions this week (minimum 20 mins).</p>
+                                    </div>
+                                    <div class="mt-2 text-end">
+                                        <a href="{{ url_for('student.challenges') }}" class="btn btn-sm btn-outline-teal py-0 px-2" style="font-size: 0.75rem;">View Challenge</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Optional Multi-Factor Lifestyle & Behavioral Risk Assessment (Model 2) -->
+                    <div class="card border border-primary-subtle rounded-4 mb-4 bg-light-subtle overflow-hidden">
+                        <div class="card-header bg-transparent py-3 px-4 d-flex justify-content-between align-items-center cursor-pointer" data-bs-toggle="collapse" data-bs-target="#lifestyleCollapse" aria-expanded="false" style="cursor: pointer;">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary-subtle text-primary p-2 rounded-circle">
+                                    <i class="bi bi-activity"></i>
+                                </span>
+                                <div>
+                                    <div class="fw-bold text-dark mb-0">Optional: Multi-Factor Lifestyle & Health Risk Assessment</div>
+                                    <small class="text-muted">Incorporate diet, hydration, physical activity, and screen habits (Model 2 — UCI Dataset)</small>
+                                </div>
+                            </div>
+                            <span class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                <i class="bi bi-chevron-down"></i> Expand / Details
+                            </span>
+                        </div>
+
+                        <div class="collapse" id="lifestyleCollapse">
+                            <div class="card-body p-4 pt-2 border-top">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="includeLifestyleToggle" name="include_lifestyle" value="1">
+                                    <label class="form-check-label fw-bold text-dark" for="includeLifestyleToggle">
+                                        Enable Multi-Factor Lifestyle ML Prediction (Requires all lifestyle fields below)
+                                    </label>
+                                </div>
+                                <div id="lifestyleFormFields" style="opacity: 0.6; pointer-events: none;" class="transition-all">
+                                    <div class="row g-3">
+                                        <div class="col-sm-6 col-md-4">
+                                            <label class="form-label small fw-semibold text-muted">Age (Years)</label>
+                                            <input type="number" class="form-control form-control-sm" name="age" id="lsAge" value="21" min="14" max="100">
+                                        </div>
+                                        <div class="col-sm-6 col-md-4">
+                                            <label class="form-label small fw-semibold text-muted">Family Overweight History</label>
+                                            <select class="form-select form-select-sm" name="family_history" id="lsFamily">
+                                                <option value="no">No</option>
+                                                <option value="yes">Yes</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-sm-6 col-md-4">
+                                            <label class="form-label small fw-semibold text-muted">High Calorie Food Consumption</label>
+                                            <select class="form-select form-select-sm" name="favc" id="lsFavc">
+                                                <option value="no">Rarely / No</option>
+                                                <option value="yes">Frequent / Yes</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-sm-6 col-md-4">
+                                            <label class="form-label small fw-semibold text-muted">Vegetables with Meals</label>
+                                            <select class="form-select form-select-sm" name="fcvc" id="lsFcvc">
+                                                <option value="1.0">Rarely (1)</option>
+                                                <option value="2.0" selected>Sometimes (2)</option>
+                                                <option value="3.0">Always (3)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-sm-6 col-md-4">
+                                            <label class="form-label small fw-semibold text-muted">Main Meals per Day</label>
+                                            <select class="form-select form-select-sm" name="ncp" id="lsNcp">
+                                                <option value="1.0">1 meal</option>
+                                                <option value="2.0">2 meals</option>
+                                                <option value="3.0" selected>3 meals</option>
+                                                <option value="4.0">4+ meals</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-sm-6 col-md-4">
+                                            <label class="form-label small fw-semibold text-muted">Snacks Between Meals</label>
+                                            <select class="form-select form-select-sm" name="caec" id="lsCaec">
+                                                <option value="no">No</option>
+                                                <option value="Sometimes" selected>Sometimes</option>
+                                                <option value="Frequently">Frequently</option>
+                                                <option value="Always">Always</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-sm-6 col-md-4">
+                                            <label class="form-label small fw-semibold text-muted">Daily Water Intake</label>
+                                            <select class="form-select form-select-sm" name="ch2o" id="lsCh2o">
+                                                <option value="1.0">Less than 1 Liter</option>
+                                                <option value="2.0" selected>1 – 2 Liters</option>
+                                                <option value="3.0">More than 2 Liters</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-sm-6 col-md-4">
+                                            <label class="form-label small fw-semibold text-muted">Weekly Physical Activity</label>
+                                            <select class="form-select form-select-sm" name="faf" id="lsFaf">
+                                                <option value="0.0">None (0 days)</option>
+                                                <option value="1.0" selected>1 – 2 days</option>
+                                                <option value="2.0">2 – 4 days</option>
+                                                <option value="3.0">4+ days</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-sm-6 col-md-4">
+                                            <label class="form-label small fw-semibold text-muted">Daily Screen Device Time</label>
+                                            <select class="form-select form-select-sm" name="tue" id="lsTue">
+                                                <option value="0.0">0 – 2 hours</option>
+                                                <option value="1.0" selected>3 – 5 hours</option>
+                                                <option value="2.0">More than 5 hours</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-sm-6 col-md-4">
+                                            <label class="form-label small fw-semibold text-muted">Smoke Tobacco</label>
+                                            <select class="form-select form-select-sm" name="smoke" id="lsSmoke">
+                                                <option value="no" selected>No</option>
+                                                <option value="yes">Yes</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-sm-6 col-md-4">
+                                            <label class="form-label small fw-semibold text-muted">Monitor Calories (SCC)</label>
+                                            <select class="form-select form-select-sm" name="scc" id="lsScc">
+                                                <option value="no" selected>No</option>
+                                                <option value="yes">Yes</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-sm-6 col-md-4">
+                                            <label class="form-label small fw-semibold text-muted">Daily Transportation</label>
+                                            <select class="form-select form-select-sm" name="mtrans" id="lsMtrans">
+                                                <option value="Public_Transportation" selected>Public Transit</option>
+                                                <option value="Walking">Walking</option>
+                                                <option value="Automobile">Automobile</option>
+                                                <option value="Motorbike">Motorbike</option>
+                                                <option value="Bike">Bicycle</option>
+                                            </select>
+                                        </div>
+                                        <input type="hidden" name="calc" id="lsCalc" value="Sometimes">
+                                    </div>
+
+                                    <!-- Live Model 2 Result Card with Protective vs. Risk Factor Breakdown -->
+                                    <div class="alert alert-info border-0 rounded-3 mt-3 mb-0 d-none" id="lifestyleResultCard">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="fw-bold small text-primary"><i class="bi bi-shield-check me-1"></i> Multi-Factor Lifestyle Model Result:</span>
+                                            <span class="badge bg-primary text-white px-3 py-1 rounded-pill" id="lsResultBadge">--</span>
+                                        </div>
+                                        <p class="small mb-2 text-dark" id="lsResultExplanation">--</p>
+
+                                        <!-- Behavioral Breakdown Columns -->
+                                        <div class="row g-2 mt-2 pt-2 border-top border-info-subtle" id="lsFactorsContainer">
+                                            <div class="col-md-6">
+                                                <div class="p-2 bg-white rounded-3 border border-success-subtle h-100 shadow-xs">
+                                                    <div class="fw-bold text-success small mb-1"><i class="bi bi-shield-check me-1"></i> Protective Habits:</div>
+                                                    <div id="lsProtectiveBadges" class="d-flex flex-column gap-1 small text-secondary">
+                                                        <span class="text-muted fst-italic">Awaiting factors...</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-2 bg-white rounded-3 border border-warning-subtle h-100 shadow-xs">
+                                                    <div class="fw-bold text-warning-emphasis small mb-1"><i class="bi bi-exclamation-triangle me-1"></i> Improvement / Focus Areas:</div>
+                                                    <div id="lsRiskBadges" class="d-flex flex-column gap-1 small text-secondary">
+                                                        <span class="text-muted fst-italic">Awaiting factors...</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Medical Disclaimer Alert Notice -->
+                    <div class="alert alert-secondary border-0 rounded-3 p-3 mb-4 d-flex align-items-start gap-2 text-secondary">
+                        <i class="bi bi-info-circle-fill fs-5 text-secondary flex-shrink-0 mt-1"></i>
+                        <div class="small" style="font-size: 0.8rem; line-height: 1.4;">
+                            <strong>Non-Medical Screening Notice:</strong> Body Mass Index (BMI) is an initial screening parameter, and machine learning classifications are statistical pattern estimations derived from academic research datasets. Neither metric constitutes a medical diagnosis or personalized clinical evaluation. If you have concerns about weight or nutritional wellness, please consult a qualified healthcare professional.
+                        </div>
                     </div>
 
                     <!-- Submit & Navigation Buttons -->
                     <div class="d-grid gap-2 d-md-flex justify-content-md-between align-items-center mt-4">
                         <a href="{{ url_for('student.dashboard') }}" class="btn btn-outline-secondary px-4 py-2 rounded-3">
-                            <i class="bi bi-arrow-left me-1"></i> Skip / Back to Dashboard
+                            <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
                         </a>
-                        <button type="submit" class="btn btn-primary-gradient px-5 py-2 rounded-3 fs-6">
-                            <i class="bi bi-check-circle-fill me-2"></i> Save Body Metrics
+                        <button type="submit" class="btn btn-primary-gradient px-5 py-2 rounded-3 fs-6 shadow-sm">
+                            <i class="bi bi-check-circle-fill me-2"></i> Save Body Metrics & ML Assessment
                         </button>
                     </div>
                 </form>
+
+                <!-- Longitudinal BMI History Table -->
+                {% if bmi_history and bmi_history|length > 0 %}
+                <div class="mt-5 pt-4 border-top">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold text-dark mb-0"><i class="bi bi-clock-history text-teal me-2"></i> Your Recent BMI History</h5>
+                        <span class="badge bg-light text-muted border">{{ bmi_history|length }} Past Entries</span>
+                    </div>
+                    <div class="table-responsive rounded-3 border">
+                        <table class="table table-hover align-middle mb-0 text-center" style="font-size: 0.85rem;">
+                            <thead class="table-light text-muted text-uppercase" style="font-size: 0.75rem;">
+                                <tr>
+                                    <th>Date Recorded</th>
+                                    <th>Height</th>
+                                    <th>Weight</th>
+                                    <th>BMI (2 d.p.)</th>
+                                    <th>Standard Category</th>
+                                    <th>ML Health Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in bmi_history %}
+                                <tr>
+                                    <td class="text-muted">{{ row.recorded_at[:10] if row.recorded_at else 'Recent' }}</td>
+                                    <td>{{ row.height }} cm</td>
+                                    <td>{{ row.weight }} kg</td>
+                                    <td class="fw-bold text-dark">{{ "%.2f"|format(row.bmi) }}</td>
+                                    <td>
+                                        <span class="badge {% if row.bmi_category == 'Normal weight' %}bg-success{% elif row.bmi_category == 'Underweight' %}bg-info{% elif row.bmi_category == 'Overweight' %}bg-warning text-dark{% else %}bg-danger{% endif %} rounded-pill px-2 py-1">
+                                            {{ row.bmi_category }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border rounded-pill px-2 py-1">
+                                            <i class="bi bi-cpu me-1 text-primary"></i>{{ row.ml_health_status or 'Standard' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -84,11 +414,54 @@ document.addEventListener('DOMContentLoaded', function() {
     const weightRange = document.getElementById('weightRange');
     const weightValDisplay = document.getElementById('weightValDisplay');
 
+    const genderRadios = document.querySelectorAll('input[name="gender"]');
+
     const bmiNumberDisplay = document.getElementById('bmiNumberDisplay');
     const bmiCategoryBadge = document.getElementById('bmiCategoryBadge');
-    const bmiInsightText = document.getElementById('bmiInsightText');
+    const bmiNeedleMarker = document.getElementById('bmiNeedleMarker');
+    
+    const mlCategoryDisplay = document.getElementById('mlCategoryDisplay');
+    const mlConfidenceBadge = document.getElementById('mlConfidenceBadge');
+    const mlExplanationText = document.getElementById('mlExplanationText');
+    const wellnessSuggestionsList = document.getElementById('wellnessSuggestionsList');
 
-    function updateBMI() {
+    // Tailored action plan elements
+    const actionPlanTheme = document.getElementById('actionPlanTheme');
+    const actionPlanFocus = document.getElementById('actionPlanFocus');
+    const actionPlanChallengesRow = document.getElementById('actionPlanChallengesRow');
+
+    // Optional lifestyle questionnaire elements
+    const includeLifestyleToggle = document.getElementById('includeLifestyleToggle');
+    const lifestyleFormFields = document.getElementById('lifestyleFormFields');
+    const lifestyleResultCard = document.getElementById('lifestyleResultCard');
+    const lsResultBadge = document.getElementById('lsResultBadge');
+    const lsResultExplanation = document.getElementById('lsResultExplanation');
+    const lsProtectiveBadges = document.getElementById('lsProtectiveBadges');
+    const lsRiskBadges = document.getElementById('lsRiskBadges');
+
+    let debounceTimer = null;
+
+    function getSelectedGender() {
+        const checked = document.querySelector('input[name="gender"]:checked');
+        return checked ? checked.value : 'Female';
+    }
+
+    // Toggle optional lifestyle fields interactivity
+    if (includeLifestyleToggle) {
+        includeLifestyleToggle.addEventListener('change', function() {
+            if (this.checked) {
+                lifestyleFormFields.style.opacity = '1';
+                lifestyleFormFields.style.pointerEvents = 'auto';
+            } else {
+                lifestyleFormFields.style.opacity = '0.6';
+                lifestyleFormFields.style.pointerEvents = 'none';
+                if (lifestyleResultCard) lifestyleResultCard.classList.add('d-none');
+            }
+            triggerLiveAssessment();
+        });
+    }
+
+    function updateLocalBMI() {
         const height = parseFloat(heightInput.value);
         const weight = parseFloat(weightInput.value);
 
@@ -99,62 +472,225 @@ document.addEventListener('DOMContentLoaded', function() {
             bmiNumberDisplay.textContent = '--';
             bmiCategoryBadge.textContent = 'Invalid Input';
             bmiCategoryBadge.className = 'badge bg-secondary fs-6 px-3 py-2 rounded-pill';
-            bmiInsightText.textContent = 'Please enter valid height and weight values.';
+            mlCategoryDisplay.textContent = 'Awaiting Valid Metrics';
+            if (bmiNeedleMarker) bmiNeedleMarker.style.left = '0%';
             return;
         }
 
+        // Exact BMI Formula: Weight in kg / (Height in m * Height in m)
         const heightM = height / 100.0;
-        const bmi = (weight / (heightM * heightM)).toFixed(1);
+        const bmi = (weight / (heightM * heightM)).toFixed(2);
         bmiNumberDisplay.textContent = bmi;
 
         let category = '';
         let badgeClass = '';
-        let tip = '';
 
         if (bmi < 18.5) {
             category = 'Underweight';
             badgeClass = 'bg-info text-white';
-            tip = 'Consider nutrient-dense meals and strength training to build healthy muscle mass.';
         } else if (bmi >= 18.5 && bmi < 25.0) {
             category = 'Normal weight';
             badgeClass = 'bg-success text-white';
-            tip = 'Great job! Maintain your balanced diet, regular exercise, and healthy sleep habits.';
         } else if (bmi >= 25.0 && bmi < 30.0) {
             category = 'Overweight';
             badgeClass = 'bg-warning text-dark';
-            tip = 'Focus on active daily movement, portion control, and staying well-hydrated throughout the day.';
         } else {
             category = 'Obese';
             badgeClass = 'bg-danger text-white';
-            tip = 'Prioritize daily brisk walks, balanced whole foods, and consulting a health professional for personalized guidance.';
         }
 
         bmiCategoryBadge.textContent = category;
         bmiCategoryBadge.className = 'badge fs-6 px-3 py-2 rounded-pill shadow-sm ' + badgeClass;
-        bmiInsightText.textContent = tip;
+
+        // Position animated spectrum needle (mapping BMI range 14 to 38 into 0-100%)
+        if (bmiNeedleMarker) {
+            const minB = 14.0;
+            const maxB = 38.0;
+            let pct = ((parseFloat(bmi) - minB) / (maxB - minB)) * 100;
+            pct = Math.max(3, Math.min(97, pct));
+            bmiNeedleMarker.style.left = pct.toFixed(1) + '%';
+        }
+    }
+
+    function fetchMLAssessment() {
+        const height = parseFloat(heightInput.value);
+        const weight = parseFloat(weightInput.value);
+        const gender = getSelectedGender();
+
+        if (!height || !weight || height < 40 || weight < 15) {
+            return;
+        }
+
+        const payload = {
+            height: height,
+            weight: weight,
+            gender: gender
+        };
+
+        if (includeLifestyleToggle && includeLifestyleToggle.checked) {
+            payload.lifestyle = {
+                Gender: gender,
+                Age: parseFloat(document.getElementById('lsAge').value || 21),
+                Height: height,
+                Weight: weight,
+                family_history_with_overweight: document.getElementById('lsFamily').value,
+                FAVC: document.getElementById('lsFavc').value,
+                FCVC: parseFloat(document.getElementById('lsFcvc').value || 2),
+                NCP: parseFloat(document.getElementById('lsNcp').value || 3),
+                CAEC: document.getElementById('lsCaec').value,
+                SMOKE: document.getElementById('lsSmoke').value,
+                CH2O: parseFloat(document.getElementById('lsCh2o').value || 2),
+                SCC: document.getElementById('lsScc').value,
+                FAF: parseFloat(document.getElementById('lsFaf').value || 1),
+                TUE: parseFloat(document.getElementById('lsTue').value || 1),
+                CALC: document.getElementById('lsCalc').value,
+                MTRANS: document.getElementById('lsMtrans').value
+            };
+        }
+
+        fetch('/api/bmi/assess', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Network error');
+            return response.json();
+        })
+        .then(data => {
+            if (data.success && data.ml_status && data.ml_status.success) {
+                const ml = data.ml_status;
+                mlCategoryDisplay.textContent = ml.predicted_label;
+                mlConfidenceBadge.textContent = `Model 1 Confidence: ${ml.confidence}%`;
+                mlExplanationText.textContent = ml.explanation;
+
+                // Render wellness tips
+                if (ml.suggestions && ml.suggestions.length > 0) {
+                    wellnessSuggestionsList.innerHTML = '';
+                    ml.suggestions.forEach(tip => {
+                        const li = document.createElement('li');
+                        li.textContent = tip;
+                        wellnessSuggestionsList.appendChild(li);
+                    });
+                }
+
+                // Render personalized challenges and action plan
+                if (data.personalized_plan) {
+                    const plan = data.personalized_plan;
+                    if (actionPlanTheme) actionPlanTheme.textContent = plan.theme;
+                    if (actionPlanFocus) actionPlanFocus.textContent = plan.key_focus;
+                    
+                    if (actionPlanChallengesRow && plan.recommended_challenges) {
+                        actionPlanChallengesRow.innerHTML = '';
+                        plan.recommended_challenges.forEach(ch => {
+                            const col = document.createElement('div');
+                            col.className = 'col-md-6';
+                            col.innerHTML = `
+                                <div class="p-3 bg-light rounded-3 border h-100 d-flex flex-column justify-content-between">
+                                    <div>
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="fw-bold text-dark small"><i class="bi bi-award-fill text-warning me-1"></i> ${ch.title}</span>
+                                            <span class="badge bg-primary text-white">${ch.badge}</span>
+                                        </div>
+                                        <p class="small text-muted mb-0">${ch.desc}</p>
+                                    </div>
+                                    <div class="mt-2 text-end">
+                                        <a href="/challenges" class="btn btn-sm btn-outline-teal py-0 px-2" style="font-size: 0.75rem;">Join Quest</a>
+                                    </div>
+                                </div>
+                            `;
+                            actionPlanChallengesRow.appendChild(col);
+                        });
+                    }
+                }
+
+                // Check Model 2 Lifestyle result and behavioral factor breakdown
+                if (data.ml_lifestyle && data.ml_lifestyle.success) {
+                    const ls = data.ml_lifestyle;
+                    if (lifestyleResultCard) {
+                        lifestyleResultCard.classList.remove('d-none');
+                        lsResultBadge.textContent = `${ls.predicted_label} (${ls.confidence}%)`;
+                        lsResultBadge.className = `badge rounded-pill ${ls.badge_class}`;
+                        lsResultExplanation.textContent = `${ls.explanation} (${ls.risk_level})`;
+
+                        // Render protective habits
+                        if (lsProtectiveBadges && ls.protective_factors) {
+                            lsProtectiveBadges.innerHTML = '';
+                            if (ls.protective_factors.length === 0) {
+                                lsProtectiveBadges.innerHTML = '<span class="text-muted fst-italic">No strong protective factors detected yet.</span>';
+                            } else {
+                                ls.protective_factors.forEach(item => {
+                                    const div = document.createElement('div');
+                                    div.className = 'd-flex align-items-start gap-1 mb-1';
+                                    div.innerHTML = `<i class="bi ${item.icon} text-success flex-shrink-0 mt-1"></i> <div><strong>${item.title}:</strong> ${item.detail}</div>`;
+                                    lsProtectiveBadges.appendChild(div);
+                                });
+                            }
+                        }
+
+                        // Render risk / improvement areas
+                        if (lsRiskBadges && ls.risk_factors) {
+                            lsRiskBadges.innerHTML = '';
+                            if (ls.risk_factors.length === 0) {
+                                lsRiskBadges.innerHTML = '<span class="text-success fst-italic"><i class="bi bi-check-circle-fill me-1"></i> No elevated risk factors identified.</span>';
+                            } else {
+                                ls.risk_factors.forEach(item => {
+                                    const div = document.createElement('div');
+                                    div.className = 'd-flex align-items-start gap-1 mb-1';
+                                    div.innerHTML = `<i class="bi ${item.icon} text-warning-emphasis flex-shrink-0 mt-1"></i> <div><strong>${item.title}:</strong> ${item.detail}</div>`;
+                                    lsRiskBadges.appendChild(div);
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        })
+        .catch(err => {
+            console.warn('ML assessment service unavailable or offline:', err);
+        });
+    }
+
+    function triggerLiveAssessment() {
+        updateLocalBMI();
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(fetchMLAssessment, 300);
     }
 
     // Sync input box and range slider
     heightInput.addEventListener('input', function() {
         heightRange.value = this.value;
-        updateBMI();
+        triggerLiveAssessment();
     });
     heightRange.addEventListener('input', function() {
         heightInput.value = this.value;
-        updateBMI();
+        triggerLiveAssessment();
     });
 
     weightInput.addEventListener('input', function() {
         weightRange.value = this.value;
-        updateBMI();
+        triggerLiveAssessment();
     });
     weightRange.addEventListener('input', function() {
         weightInput.value = this.value;
-        updateBMI();
+        triggerLiveAssessment();
     });
 
-    // Initial update
-    updateBMI();
+    genderRadios.forEach(radio => {
+        radio.addEventListener('change', triggerLiveAssessment);
+    });
+
+    // Listen to changes in lifestyle fields
+    const lsInputs = document.querySelectorAll('#lifestyleFormFields select, #lifestyleFormFields input');
+    lsInputs.forEach(input => {
+        input.addEventListener('change', triggerLiveAssessment);
+    });
+
+    // Initial load assessment
+    triggerLiveAssessment();
 });
 </script>
 {% endblock %}

@@ -14,13 +14,26 @@ def create_app(config_name='default'):
     from app.routes.auth import auth_bp
     from app.routes.student import student_bp
     from app.routes.admin import admin_bp
+    from app.routes.api import api_bp
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(student_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(api_bp)
     
+    dist_dir = os.path.abspath(os.path.join(app.root_path, '..', 'frontend', 'dist'))
+
+    @app.route('/assets/<path:filename>')
+    def serve_frontend_assets(filename):
+        assets_dir = os.path.join(dist_dir, 'assets')
+        if os.path.exists(assets_dir):
+            return send_from_directory(assets_dir, filename)
+        return "Asset not found", 404
+
     @app.route('/')
     def index():
+        if os.path.exists(os.path.join(dist_dir, 'index.html')):
+            return send_from_directory(dist_dir, 'index.html')
         if 'user_id' in session:
             if session.get('role') == 'admin':
                 return redirect(url_for('admin.dashboard'))

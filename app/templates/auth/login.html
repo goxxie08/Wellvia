@@ -6,9 +6,9 @@
 <div class="auth-wrapper d-flex align-items-center justify-content-center py-4 py-md-5">
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-12 col-sm-10 col-md-8 col-lg-5 col-xl-4">
+            <div class="col-12 col-sm-10 col-md-7 col-lg-5 col-xl-4">
                 
-                <div class="auth-card card border-0 shadow-lg overflow-hidden position-relative">
+                <div class="auth-card card border-0 shadow-sm overflow-hidden position-relative mx-auto">
                     <!-- Top subtle gradient accent bar -->
                     <div class="auth-card-top-bar"></div>
 
@@ -28,7 +28,7 @@
                             </div>
 
                             <h1 class="h3 fw-bold text-dark mb-1 brand-font">Wellvia Login</h1>
-                            <p class="text-muted small mb-0">Welcome back! Sign in to access your wellness dashboard.</p>
+                            <p class="text-muted small mb-0">Sign in to access your student wellness dashboard</p>
                         </div>
 
                         <!-- Login Form -->
@@ -36,7 +36,7 @@
                             
                             <!-- Username or Email Field -->
                             <div class="mb-3">
-                                <label for="login_input" class="form-label font-weight-bold small text-uppercase tracking-wide text-secondary mb-1">
+                                <label for="login_input" class="form-label fw-semibold small text-uppercase tracking-wide text-secondary mb-1">
                                     Username or Email
                                 </label>
                                 <div class="input-group auth-input-group">
@@ -44,7 +44,7 @@
                                         <i class="bi bi-person-fill text-teal"></i>
                                     </span>
                                     <input type="text" 
-                                           class="form-control form-control-custom border-start-0 ps-0" 
+                                           class="form-control form-control-custom border-start-0 ps-2" 
                                            id="login_input" 
                                            name="login_input" 
                                            value="{{ login_input or '' }}" 
@@ -59,10 +59,9 @@
                             <!-- Password Field & Forgot Password Link -->
                             <div class="mb-4">
                                 <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <label for="password" class="form-label font-weight-bold small text-uppercase tracking-wide text-secondary mb-0">
+                                    <label for="password" class="form-label fw-semibold small text-uppercase tracking-wide text-secondary mb-0">
                                         Password
                                     </label>
-                                    <!-- Forgot Password? option with clickable icon -->
                                     <a href="{{ url_for('auth.forgot_password') }}" class="forgot-password-link text-teal text-decoration-none small d-inline-flex align-items-center gap-1" id="forgot-password-link">
                                         <i class="bi bi-key-fill text-teal"></i>
                                         <span>Forgot Password?</span>
@@ -74,14 +73,14 @@
                                         <i class="bi bi-lock-fill text-teal"></i>
                                     </span>
                                     <input type="password" 
-                                           class="form-control form-control-custom border-start-0 border-end-0 ps-0" 
+                                           class="form-control form-control-custom border-start-0 border-end-0 ps-2" 
                                            id="password" 
                                            name="password" 
                                            placeholder="••••••••" 
                                            aria-label="Password"
                                            aria-describedby="password-addon"
                                            required>
-                                    <button class="btn btn-outline-light text-muted border border-start-0 bg-light px-3 password-toggle-btn" 
+                                    <button class="btn btn-outline-light text-muted border border-start-0 bg-light px-3 password-toggle-btn d-flex align-items-center justify-content-center" 
                                             type="button" 
                                             id="togglePassword" 
                                             aria-label="Toggle password visibility"

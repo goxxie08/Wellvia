@@ -1,0 +1,146 @@
+{
+  "dataset": "ObesityDataSet_raw_and_data_sinthetic",
+  "raw_rows": 2111,
+  "clean_rows": 2087,
+  "duplicates_removed": 24,
+  "synthetic_fractional_age_count": 1375,
+  "synthetic_fractional_age_pct": 65.88404408241495,
+  "features": [
+    "Gender",
+    "Age",
+    "Height",
+    "Weight",
+    "family_history_with_overweight",
+    "FAVC",
+    "FCVC",
+    "NCP",
+    "CAEC",
+    "SMOKE",
+    "CH2O",
+    "SCC",
+    "FAF",
+    "TUE",
+    "CALC",
+    "MTRANS"
+  ],
+  "numerical_features": [
+    "Age",
+    "Height",
+    "Weight",
+    "FCVC",
+    "NCP",
+    "CH2O",
+    "FAF",
+    "TUE"
+  ],
+  "categorical_features": [
+    "Gender",
+    "family_history_with_overweight",
+    "FAVC",
+    "CAEC",
+    "SMOKE",
+    "SCC",
+    "CALC",
+    "MTRANS"
+  ],
+  "target": "NObeyesdad",
+  "classes": [
+    "Insufficient_Weight",
+    "Normal_Weight",
+    "Obesity_Type_I",
+    "Obesity_Type_II",
+    "Obesity_Type_III",
+    "Overweight_Level_I",
+    "Overweight_Level_II"
+  ],
+  "class_distribution": {
+    "Obesity_Type_I": 351,
+    "Obesity_Type_III": 324,
+    "Obesity_Type_II": 297,
+    "Overweight_Level_II": 290,
+    "Normal_Weight": 282,
+    "Overweight_Level_I": 276,
+    "Insufficient_Weight": 267
+  },
+  "test_accuracy": 0.9449760765550239,
+  "test_precision_macro": 0.9469182632219318,
+  "test_recall_macro": 0.9430713436789134,
+  "test_f1_macro": 0.9439555001638159,
+  "test_precision_weighted": 0.9491969339035269,
+  "test_recall_weighted": 0.9449760765550239,
+  "test_f1_weighted": 0.946095619869087,
+  "confusion_matrix": [
+    [
+      50,
+      3,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      53,
+      0,
+      0,
+      0,
+      2,
+      2
+    ],
+    [
+      0,
+      2,
+      67,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      0,
+      0,
+      0,
+      60,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      0,
+      64,
+      0,
+      0
+    ],
+    [
+      0,
+      7,
+      0,
+      0,
+      0,
+      48,
+      0
+    ],
+    [
+      0,
+      2,
+      0,
+      0,
+      0,
+      3,
+      53
+    ]
+  ],
+  "classes_in_confusion_matrix": [
+    "Insufficient_Weight",
+    "Normal_Weight",
+    "Obesity_Type_I",
+    "Obesity_Type_II",
+    "Obesity_Type_III",
+    "Overweight_Level_I",
+    "Overweight_Level_II"
+  ]
+}

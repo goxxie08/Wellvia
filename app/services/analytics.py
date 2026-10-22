@@ -69,6 +69,29 @@ def get_student_analytics_data(user_id, days=7):
         'counts': [int(x) for x in non_null_counts.values()]
     }
 
+    # Extract historical BMI and Weight trajectory
+    bmi_records = execute_query(
+        """
+        SELECT recorded_at, height, weight, bmi, bmi_category, ml_health_status
+        FROM bmi_history
+        WHERE user_id = %s
+        ORDER BY recorded_at ASC
+        LIMIT 20
+        """,
+        (user_id,),
+        fetchall=True
+    )
+    if bmi_records:
+        chart_data['bmi_history'] = {
+            'labels': [str(r['recorded_at'])[:10] for r in bmi_records],
+            'bmi': [round(float(r['bmi']), 2) for r in bmi_records],
+            'weight': [round(float(r['weight']), 1) for r in bmi_records],
+            'categories': [r['bmi_category'] for r in bmi_records],
+            'ml_status': [r['ml_health_status'] or '' for r in bmi_records]
+        }
+    else:
+        chart_data['bmi_history'] = {'labels': [], 'bmi': [], 'weight': [], 'categories': [], 'ml_status': []}
+
     # Generate pattern observations
     insights = []
     if len(df.dropna(subset=['sleep_hours', 'stress_level'])) >= 3:

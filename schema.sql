@@ -14,13 +14,31 @@ CREATE TABLE IF NOT EXISTS `users` (
     `total_points` INT NOT NULL DEFAULT 0,
     `height` FLOAT NULL,
     `weight` FLOAT NULL,
+    `gender` VARCHAR(20) NULL DEFAULT 'Female',
     `bmi` FLOAT NULL,
     `bmi_category` VARCHAR(50) NULL,
+    `ml_health_status` VARCHAR(50) NULL,
+    `ml_lifestyle_risk` VARCHAR(50) NULL,
     `is_active` TINYINT(1) NOT NULL DEFAULT 1,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX `idx_users_role` (`role`),
     INDEX `idx_users_username` (`username`),
     INDEX `idx_users_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 1b. BMI History Table (Tracks longitudinal BMI & ML assessment history)
+CREATE TABLE IF NOT EXISTS `bmi_history` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NOT NULL,
+    `recorded_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `height` FLOAT NOT NULL,
+    `weight` FLOAT NOT NULL,
+    `bmi` FLOAT NOT NULL,
+    `bmi_category` VARCHAR(50) NOT NULL,
+    `ml_health_status` VARCHAR(50) NULL,
+    `ml_lifestyle_risk` VARCHAR(50) NULL,
+    FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+    INDEX `idx_bmi_history_user` (`user_id`, `recorded_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 2. WellnessRecords Table (Consolidated daily records per student)
