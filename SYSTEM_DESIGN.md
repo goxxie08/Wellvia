@@ -7,7 +7,7 @@
 
 ## 1. System Overview
 
-The Student Wellness Companion is a web-based application built on a practical three-layer architecture. It allows college students to track daily wellness metrics, maintain a private journal, and participate in challenges, while providing administrators with anonymized, aggregated insights.
+The Student Wellness Companion is a web-based application built on a practical three-layer architecture. It allows college students to track daily wellness metrics and participate in challenges, while providing administrators with anonymized, aggregated insights.
 
 The system flow relies on a client-server model where the frontend (rendered HTML/JS) communicates with a Flask backend, which in turn interacts with a MySQL database.
 
@@ -74,12 +74,9 @@ The system is divided into distinct functional modules.
     *   *Inputs:* Stress level (1-5).
 10. **Study Tracking:**
     *   *Inputs:* Hours, Sessions, Subject.
-11. **Journal:**
-    *   *Purpose:* Private CRUD operations for gratitude entries.
-    *   *Access:* Strictly limited to the owning student.
-12. **Wellness Tips:**
+11. **Wellness Tips:**
     *   *Purpose:* Read-only display of admin-curated tips.
-13. **Challenges:**
+12. **Challenges:**
     *   *Purpose:* View active challenges and mark them as complete.
 14. **Gamification:**
     *   *Purpose:* Core engine calculating streaks and awarding points based on events.
@@ -92,9 +89,9 @@ The system is divided into distinct functional modules.
 
 17. **Admin Authentication:**
     *   *Purpose:* Secure login for pre-created admin accounts.
-18. **User Management:**
+17. **User Management:**
     *   *Purpose:* View student lists, activate/deactivate accounts.
-    *   *Access:* Cannot view private wellness/journal data.
+    *   *Access:* Cannot view private student wellness data.
 19. **Wellness Tip Management:**
     *   *Purpose:* CRUD operations for system-wide tips.
 20. **Challenge Management:**
@@ -144,18 +141,6 @@ Student
 → Gamification Service: Check Achievements (Award badge if eligible)
 → Redirect to /dashboard with success message
 ```
-
-### Journal Entry
-
-```text
-Student
-→ Submits Journal Form (Content)
-→ Flask Route: Validate Content (Not empty)
-→ Database: Insert into JournalEntries (user_id = session.user_id)
-→ Gamification Service: Award Points
-→ Redirect to /journal (History view)
-```
-*Privacy Control:* All `SELECT`, `UPDATE`, and `DELETE` operations append `WHERE user_id = session.user_id`.
 
 ### Challenge Completion
 
@@ -221,16 +206,6 @@ The database uses MySQL. The schema is normalized appropriately for the project 
 
 *Constraint:* `UNIQUE(user_id, record_date)` to ensure one record per day per user.
 
-### JournalEntries Table
-*Purpose:* Private gratitude journal entries.
-| Column | Type | Key | Null | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| `id` | INT | PK | No | Auto-incrementing ID |
-| `user_id` | INT | FK | No | Refers to Users.id |
-| `entry_date` | DATE | | No | Date of entry |
-| `content` | TEXT | | No | Journal text |
-| `created_at` | DATETIME | | No | Timestamp |
-
 ### WellnessTips Table
 *Purpose:* Admin-curated tips.
 | Column | Type | Key | Null | Description |
@@ -287,7 +262,6 @@ The database uses MySQL. The schema is normalized appropriately for the project 
 ```mermaid
 erDiagram
     USERS ||--o{ WELLNESS_RECORDS : logs
-    USERS ||--o{ JOURNAL_ENTRIES : writes
     USERS ||--o{ CHALLENGE_PROGRESS : completes
     USERS ||--o{ USER_ACHIEVEMENTS : earns
     CHALLENGES ||--o{ CHALLENGE_PROGRESS : tracked_by
@@ -298,10 +272,6 @@ erDiagram
         string role
     }
     WELLNESS_RECORDS {
-        int id PK
-        int user_id FK
-    }
-    JOURNAL_ENTRIES {
         int id PK
         int user_id FK
     }
@@ -387,9 +357,6 @@ The application uses Server-Side Rendering (SSR). Routes primarily return HTML, 
 | **Student Routes** |
 | GET | `/dashboard` | Student | Display daily summary and widgets |
 | GET/POST | `/wellness` | Student | Display form / Submit daily wellness data |
-| GET | `/journal` | Student | View journal history |
-| POST | `/journal/add` | Student | Create new journal entry |
-| POST | `/journal/delete/<id>`| Student | Delete own journal entry |
 | GET | `/tips` | Student | Browse tips |
 | GET | `/challenges` | Student | View active challenges |
 | POST | `/challenges/<id>/complete`| Student| Mark challenge complete |
@@ -421,7 +388,7 @@ However, for chart rendering, the frontend uses JavaScript (fetch API) to reques
   "wellness_scores": [85, 70, 90, 80, 65, 95, 90]
 }
 ```
-*Security Note:* This JSON response never contains sensitive journal data or raw passwords.
+*Security Note:* This JSON response never contains sensitive personal data or raw passwords.
 
 ---
 
@@ -435,7 +402,6 @@ Server-side validation is strictly enforced in the Service/Utility layer.
 *   **Mood:** `1 <= mood <= 5`.
 *   **Stress:** `1 <= stress <= 5`.
 *   **Study Hours:** `0.0 <= hours <= 24.0`.
-*   **Journal:** Content cannot be empty. Max length 2000 characters. Sanitized by Jinja2 automatically on rendering to prevent XSS.
 
 ---
 
@@ -471,7 +437,6 @@ The Wellness Score is a weighted calculation (0-100) providing a quick self-awar
 Stored as a running total in `Users.total_points`.
 *   Log any daily wellness data: +10 pts (awarded once per day)
 *   Complete a daily challenge: +20 pts
-*   Write a journal entry: +15 pts (awarded once per day)
 
 **Streaks:**
 Calculated dynamically.
@@ -497,17 +462,7 @@ Challenges encourage positive habits.
 
 ---
 
-## 16. Journal Design
-
-*   **Privacy is paramount.**
-*   **Creating:** `POST /journal/add`. Form data is saved. `user_id` is *strictly* pulled from the secure server session (`session['user_id']`), never from a hidden form field.
-*   **Viewing:** `GET /journal`. Query: `SELECT * FROM JournalEntries WHERE user_id = ? ORDER BY entry_date DESC`.
-*   **Deleting:** `POST /journal/delete/<id>`. Query: `DELETE FROM JournalEntries WHERE id = ? AND user_id = ?`. The `AND user_id = ?` ensures a user cannot craft an HTTP request to delete someone else's entry.
-*   **Admin Access:** No admin routes interact with the `JournalEntries` table.
-
----
-
-## 17. Analytics Design
+## 16. Analytics Design
 
 ### Student Analytics (Personalized)
 *   Queries filter strictly by `session['user_id']`.
@@ -560,8 +515,8 @@ Data visualization is handled client-side by Chart.js, fed by JSON from Flask.
 
 Authorization occurs after Authentication, determining permissions based on `session['role']`.
 
-*   **Student Role:** Can access `/dashboard`, `/wellness`, `/journal`. Cannot access `/admin/*`.
-*   **Admin Role:** Can access `/admin/dashboard`, `/admin/tips`. Cannot access `/wellness` or `/journal`.
+*   **Student Role:** Can access `/dashboard`, `/wellness`. Cannot access `/admin/*`.
+*   **Admin Role:** Can access `/admin/dashboard`, `/admin/tips`. Cannot access `/wellness`.
 
 Route-level enforcement is handled by an `@admin_required` decorator that aborts with HTTP 403 (Forbidden) if a student attempts access. Data-level authorization (accessing specific DB rows) relies on `user_id` matching in SQL queries.
 
@@ -595,7 +550,7 @@ A basic Python `logging` configuration is implemented.
 *   **Info Level:** Logs successful logins, admin content creation.
 *   **Warning Level:** Logs failed login attempts (potential brute force), 403 Forbidden access attempts.
 *   **Error Level:** Logs database connection failures, unhandled exceptions.
-*   **Strictly Prohibited from Logs:** Plain-text passwords, session cookies, journal entry content.
+*   **Strictly Prohibited from Logs:** Plain-text passwords, session cookies, personal health content.
 
 ---
 
@@ -603,7 +558,7 @@ A basic Python `logging` configuration is implemented.
 
 The UI is built with HTML5, CSS3, and Bootstrap 5 for responsiveness.
 
-*   **Navigation:** A top Navbar (collapses to a hamburger menu on mobile) containing links to Dashboard, Journal, Tips, and Logout.
+*   **Navigation:** A top Navbar (collapses to a hamburger menu on mobile) containing links to Dashboard, Tips, and Logout.
 *   **Student Dashboard:** Uses a grid layout. Top row: Score cards (Points, Streak, Wellness Score). Middle row: Active challenge and Daily Tip. Bottom row: Mini-charts or recent logs.
 *   **Admin Dashboard:** Distinct visual theme (e.g., darker navbar) to visually differentiate from the student view. Features wide charts and data tables for user management.
 
@@ -675,8 +630,7 @@ In development, a `.env` file is used. In production, real environment variables
 | TC-02 | Auth | Login with incorrect password | Form fails, flashes "Invalid credentials" |
 | TC-03 | Wellness | Submit 30 hours of sleep | Validation fails, DB is not updated |
 | TC-04 | Wellness | Submit valid metrics | Success, redirects to Dashboard, Score updates |
-| TC-05 | Journal | Student A accesses Student B's ID | Route returns 403 or 404 Not Found |
-| TC-06 | Admin | Admin creates tip | Tip appears in `WellnessTips` table |
+| TC-05 | Admin | Admin creates tip | Tip appears in `WellnessTips` table |
 | TC-07 | Security | Access `/admin/dashboard` as Student | Route returns 403 Forbidden |
 
 ---
@@ -733,7 +687,6 @@ For a college project, standard `mysqldump` is sufficient.
 | Holistic Wellness Tracking | Application Layer (Flask) | Wellness Tracking Service |
 | Self-Awareness | Data Access Layer (Pandas) | Progress Analytics / Chart.js |
 | Gamification | Business Logic Layer | Gamification & Achievements |
-| Reflection | Application & Data Layers | Private Journal Module |
 | Institutional Insights | Data Access Layer | Admin Analytics Reporting |
 
 ---

@@ -56,7 +56,7 @@ The three layers are:
 │   Pandas (Data Processing)                  │
 ├─────────────────────────────────────────────┤
 │          MySQL Database                     │
-│   Users · WellnessRecords · Journals        │
+│   Users · WellnessRecords                   │
 │   Tips · Challenges · Achievements          │
 └─────────────────────────────────────────────┘
 ```
@@ -142,7 +142,6 @@ The Data Access Layer manages all interactions with the MySQL database and handl
 |--------|-------------|
 | Users | Student and administrator accounts |
 | WellnessRecords | Daily wellness data (sleep, hydration, exercise, mood, stress, study) |
-| JournalEntries | Private gratitude journal entries |
 | WellnessTips | Admin-curated wellness tips |
 | Challenges | Admin-created wellness challenges |
 | ChallengeProgress | Student participation and completion tracking |
@@ -178,7 +177,6 @@ flowchart TD
         GamificationService["Gamification<br/>Service"]
         AnalyticsService["Analytics<br/>Service"]
         ContentService["Content<br/>Management Service"]
-        JournalService["Journal<br/>Service"]
         ScoreEngine["Wellness Score<br/>Engine"]
     end
 
@@ -198,14 +196,12 @@ flowchart TD
     Router --> GamificationService
     Router --> AnalyticsService
     Router --> ContentService
-    Router --> JournalService
 
     WellnessService --> ScoreEngine
     WellnessService --> DAL
     GamificationService --> DAL
     AnalyticsService --> DAL
     ContentService --> DAL
-    JournalService --> DAL
     Auth --> DAL
     ScoreEngine --> DAL
 
@@ -217,7 +213,7 @@ flowchart TD
 1. **Students and Administrators** interact with the system through the same **Web Interface**, but see different dashboards and have different permissions.
 2. The **Route Handler** in Flask receives all HTTP requests and delegates to the appropriate service based on the URL and HTTP method.
 3. **Authentication & Authorization** is consulted on every request to verify identity and enforce role-based access.
-4. **Service modules** (Wellness, Gamification, Analytics, Content, Journal) encapsulate domain-specific business logic.
+4. **Service modules** (Wellness, Gamification, Analytics, Content) encapsulate domain-specific business logic.
 5. The **Wellness Score Engine** is a dedicated calculation module invoked by the Wellness Tracking Service.
 6. All services access the database through the **Data Access Layer**, which uses PyMySQL for queries and Pandas for complex aggregation.
 7. **Chart.js** in the Presentation Layer receives pre-processed data from the Analytics Service, rendered into template variables by Flask.
@@ -234,7 +230,6 @@ flowchart LR
         AuthUI["Authentication UI<br/>Login · Register · Logout"]
         StudentDash["Student Dashboard<br/>Score · Streaks · Tips"]
         WellnessForms["Wellness Tracking Forms<br/>Sleep · Water · Exercise<br/>Mood · Stress · Study"]
-        JournalUI["Journal UI<br/>Create · View · Edit · Delete"]
         TipsUI["Wellness Tips Browser<br/>Category Filtering"]
         ChallengeUI["Challenge UI<br/>Active Challenges · Progress"]
         ProgressUI["Progress & Analytics UI<br/>Charts · Trends · Insights"]
@@ -259,7 +254,7 @@ flowchart LR
 | Attribute | Detail |
 |-----------|--------|
 | **Purpose** | Central hub displaying the student's current wellness snapshot |
-| **Responsibilities** | Display today's wellness score, tracked activities, habit streaks, recent mood, hydration progress, sleep/exercise summary, daily tip, active challenge, and journal shortcut |
+| **Responsibilities** | Display today's wellness score, tracked activities, habit streaks, recent mood, hydration progress, sleep/exercise summary, daily tip, and active challenge |
 | **Inputs** | Pre-processed data from the Application Layer (today's records, scores, streaks, tip of the day, active challenge) |
 | **Outputs** | Rendered dashboard page with interactive widgets |
 | **Dependencies** | Wellness Tracking Module, Gamification Module, Content Management Module, Analytics Module |
@@ -273,16 +268,6 @@ flowchart LR
 | **Inputs** | User-entered wellness data |
 | **Outputs** | POST request to Flask backend; updated dashboard on success |
 | **Dependencies** | Wellness Tracking Module (backend), Bootstrap form components |
-
-#### Journal UI
-
-| Attribute | Detail |
-|-----------|--------|
-| **Purpose** | Provide a private journaling interface for gratitude and reflection |
-| **Responsibilities** | Render journal entry form, display chronological list of past entries, enable edit and delete operations |
-| **Inputs** | Free-text journal content |
-| **Outputs** | CRUD operations on journal entries; rendered journal history |
-| **Dependencies** | Journal Module (backend) |
 
 #### Wellness Tips UI
 
@@ -354,7 +339,6 @@ flowchart TD
         AuthMod["Authentication Module"]
         UserMod["User Management Module"]
         WellnessMod["Wellness Tracking Module"]
-        JournalMod["Journal Module"]
         TipsMod["Wellness Tips Module"]
         ChallengeMod["Challenge Module"]
         GamificationMod["Gamification Module"]
@@ -400,16 +384,6 @@ flowchart TD
 | **Inputs** | Wellness form data (sleep, hydration, exercise, mood, stress, study) |
 | **Outputs** | Stored wellness record, calculated wellness score, gamification triggers |
 | **Dependencies** | Wellness Score Engine, Gamification Module, Data Access Layer |
-
-#### Journal Module
-
-| Attribute | Detail |
-|-----------|--------|
-| **Purpose** | Manage private gratitude journal entries |
-| **Responsibilities** | Create, read, update, and delete journal entries; enforce ownership — only the author can access their entries; provide chronological journal history |
-| **Inputs** | Journal content, entry ID (for edit/delete), authenticated user ID |
-| **Outputs** | Stored journal entry, journal history list |
-| **Dependencies** | Authentication Module (ownership verification), Data Access Layer |
 
 #### Wellness Tips Module
 
@@ -475,13 +449,12 @@ flowchart TD
 
 ### 4.3 Database Components
 
-The database consists of seven core entities and one junction table. Detailed schema design is documented in `SYSTEM_DESIGN.md`; this section describes entities at the architectural level.
+The database consists of six core entities and one junction table. Detailed schema design is documented in `SYSTEM_DESIGN.md`; this section describes entities at the architectural level.
 
 | Entity | Purpose | Key Relationships |
 |--------|---------|-------------------|
-| **Users** | Stores all user accounts (students and administrators) | One-to-many with WellnessRecords, JournalEntries, ChallengeProgress, UserAchievements |
+| **Users** | Stores all user accounts (students and administrators) | One-to-many with WellnessRecords, ChallengeProgress, UserAchievements |
 | **WellnessRecords** | Consolidated daily wellness data per student | Many-to-one with Users |
-| **JournalEntries** | Private gratitude journal entries | Many-to-one with Users |
 | **WellnessTips** | Admin-curated wellness advice | Standalone (no FK relationships) |
 | **Challenges** | Admin-created wellness challenges | One-to-many with ChallengeProgress |
 | **ChallengeProgress** | Tracks student participation in challenges | Many-to-one with Users and Challenges |
@@ -504,7 +477,6 @@ flowchart TD
     E --> F["Student Dashboard"]
 
     F --> G["Log Wellness Data"]
-    F --> H["View/Write Journal"]
     F --> I["Browse Wellness Tips"]
     F --> J["View/Join Challenges"]
     F --> K["View Progress Charts"]
@@ -518,9 +490,6 @@ flowchart TD
     Q --> R["Check Badge Eligibility"]
     R --> S["Return to Dashboard<br/>(Updated View)"]
 
-    H --> T["Ownership Verification"]
-    T --> U["Store/Retrieve<br/>JournalEntries"]
-
     K --> V["Fetch Wellness Records"]
     V --> W["Pandas Aggregation"]
     W --> X["Chart.js Visualization"]
@@ -533,10 +502,9 @@ flowchart TD
 3. **Dashboard:** The student is redirected to their personalized dashboard, which loads today's wellness data, current streaks, wellness score, a daily tip, and any active challenges.
 4. **Wellness Logging:** The student fills out wellness forms (sleep, hydration, exercise, mood, stress, study). Data is validated server-side, stored in the `WellnessRecords` table, and the wellness score is recalculated.
 5. **Gamification Triggers:** After logging, the system awards points, updates streak counts, and checks whether any badge criteria have been met. New badges are recorded in `UserAchievements`.
-6. **Journaling:** The student writes gratitude entries. Each entry is tied to the student's user ID. Only the owning student can view, edit, or delete their entries.
-7. **Analytics:** The student visits the progress page. The backend fetches historical wellness records, processes them through Pandas for aggregation, and sends structured data to Chart.js for rendering.
-8. **Challenges:** The student views active challenges, joins them, and marks them as completed. Completion triggers point awards and potential badge checks.
-9. **Logout:** The student logs out, destroying the server-side session.
+6. **Analytics:** The student visits the progress page. The backend fetches historical wellness records, processes them through Pandas for aggregation, and sends structured data to Chart.js for rendering.
+7. **Challenges:** The student views active challenges, joins them, and marks them as completed. Completion triggers point awards and potential badge checks.
+8. **Logout:** The student logs out, destroying the server-side session.
 
 ---
 
@@ -582,8 +550,7 @@ flowchart TD
 | **Role-based routes** | Admin routes are grouped under `/admin/*` and protected by a decorator that checks `session['role'] == 'admin'`. |
 | **Separate dashboards** | Students are redirected to `/dashboard`; administrators are redirected to `/admin/dashboard`. The two interfaces are entirely different templates. |
 | **No access to private data** | Admin routes query only aggregated data. The admin analytics module uses SQL `GROUP BY` and `AVG`/`COUNT` operations — individual user IDs are not included in the result set sent to the template. |
-| **No journal access** | There is no admin route or query that retrieves individual journal entries. |
-| **Account management scope** | Admins can view usernames, emails, registration dates, and account status. They cannot view wellness records, mood logs, stress levels, or journal content for individual students. |
+| **Account management scope** | Admins can view usernames, emails, registration dates, and account status. They cannot view wellness records, mood logs, or stress levels for individual students. |
 | **Pre-created accounts** | Admin accounts are pre-created (seeded during setup), not self-registered. There is no public admin registration route. |
 
 ---
@@ -655,7 +622,7 @@ The system defines exactly two roles:
 
 | Role | Description | Access Scope |
 |------|-------------|--------------|
-| **Student** | Primary user who tracks wellness, journals, and participates in challenges | All student routes (`/dashboard`, `/wellness`, `/journal`, `/tips`, `/challenges`, `/progress`, `/profile`) |
+| **Student** | Primary user who tracks wellness and participates in challenges | All student routes (`/dashboard`, `/wellness`, `/tips`, `/challenges`, `/progress`, `/profile`) |
 | **Admin** | Campus wellness coordinator who manages content and views aggregated analytics | All admin routes (`/admin/dashboard`, `/admin/users`, `/admin/tips`, `/admin/challenges`, `/admin/analytics`) |
 
 **Protected Route Implementation:**
@@ -672,7 +639,7 @@ Flask route decorators are used to enforce access control:
 
 - Unauthenticated users attempting to access any protected route are redirected to `/login`.
 - Authenticated students attempting to access admin routes receive a 403 Forbidden response or are redirected to their own dashboard.
-- Authenticated admins attempting to access student-specific routes (e.g., journal) receive a 403 Forbidden response.
+- Authenticated admins attempting to access student-specific routes receive a 403 Forbidden response.
 
 ---
 
@@ -707,27 +674,7 @@ flowchart TD
 7. The Gamification Module awards points, updates streaks, and checks for newly earned badges.
 8. The student is redirected back to the dashboard with updated data.
 
-### 8.2 Journal Entry Flow
-
-```mermaid
-flowchart TD
-    A["👨‍🎓 Student"] -->|"Writes entry"| B["Journal Form"]
-    B -->|"POST /journal/create"| C["Flask Route"]
-    C --> D["Authentication Check"]
-    D -->|"Not authenticated"| E["Redirect to /login"]
-    D -->|"Authenticated"| F["Validate Content<br/>(non-empty, sanitized)"]
-    F -->|"Invalid"| G["Return form with errors"]
-    F -->|"Valid"| H["Insert into<br/>JournalEntries<br/>(user_id = session user)"]
-    H --> I["Award Points<br/>(15 pts for journal)"]
-    I --> J["Redirect to<br/>Journal History"]
-```
-
-**Privacy enforcement:**
-
-- On **create**: The `user_id` is always set from the server-side session, not from form data.
-- On **read/edit/delete**: The query includes `WHERE user_id = :session_user_id AND entry_id = :entry_id`, ensuring that only the owning student can access the entry. If no matching record is found, a 403/404 response is returned.
-
-### 8.3 Analytics Data Flow
+### 8.2 Analytics Data Flow
 
 ```mermaid
 flowchart TD
@@ -753,7 +700,7 @@ flowchart TD
 
 **Key difference:** Student analytics queries include `WHERE user_id = :current_user`. Admin analytics queries use aggregate functions (`AVG`, `COUNT`, `GROUP BY date`) **without** including `user_id` in the `SELECT` or output — ensuring anonymity.
 
-### 8.4 Admin Content Management Flow
+### 8.3 Admin Content Management Flow
 
 ```mermaid
 flowchart LR
@@ -775,7 +722,6 @@ flowchart LR
 ```mermaid
 erDiagram
     Users ||--o{ WellnessRecords : "logs daily"
-    Users ||--o{ JournalEntries : "writes"
     Users ||--o{ ChallengeProgress : "participates in"
     Users ||--o{ UserAchievements : "earns"
     Challenges ||--o{ ChallengeProgress : "tracked by"
@@ -809,15 +755,6 @@ erDiagram
         varchar study_subject "nullable"
         int wellness_score
         datetime created_at
-    }
-
-    JournalEntries {
-        int entry_id PK
-        int user_id FK
-        date entry_date
-        text content
-        datetime created_at
-        datetime updated_at
     }
 
     WellnessTips {
@@ -869,7 +806,6 @@ erDiagram
 | Relationship | Type | Description |
 |--------------|------|-------------|
 | Users → WellnessRecords | One-to-Many | Each student has multiple daily wellness records. |
-| Users → JournalEntries | One-to-Many | Each student has multiple journal entries. |
 | Users → ChallengeProgress | One-to-Many | Each student can participate in multiple challenges. |
 | Users → UserAchievements | One-to-Many | Each student can earn multiple achievements. |
 | Challenges → ChallengeProgress | One-to-Many | Each challenge can be attempted by multiple students. |
@@ -894,7 +830,6 @@ Optional fields (sleep quality, exercise intensity, study subject) are nullable,
 | Data Type | Owner | Accessible By |
 |-----------|-------|---------------|
 | Wellness records | Individual student | The student only; aggregated (anonymized) views available to admins |
-| Journal entries | Individual student | The student only; **no** admin access |
 | Profile information | Individual student | The student; limited admin access (username, email, status) |
 | Wellness tips | System (admin-managed) | All users (read); admins (write) |
 | Challenges | System (admin-managed) | All students (read/participate); admins (write) |
@@ -909,7 +844,6 @@ Optional fields (sleep quality, exercise intensity, study subject) are nullable,
 | Table | Indexed Columns | Rationale |
 |-------|-----------------|-----------|
 | WellnessRecords | `(user_id, record_date)` | Dashboard queries filter by user and date |
-| JournalEntries | `(user_id, entry_date)` | Journal retrieval filtered by user |
 | ChallengeProgress | `(user_id, challenge_id)` | Progress lookups per user per challenge |
 | UserAchievements | `(user_id)` | Badge display queries |
 | Users | `(username)`, `(email)` | Login lookups |
@@ -1085,7 +1019,6 @@ The gamification system is designed to sustain engagement through positive reinf
 flowchart TD
     subgraph Triggers["Event Triggers"]
         T1["Wellness Data Logged"]
-        T2["Journal Entry Created"]
         T3["Challenge Completed"]
     end
 
@@ -1102,7 +1035,6 @@ flowchart TD
     end
 
     T1 --> E1
-    T2 --> E1
     T3 --> E1
     T1 --> E2
     E1 --> E3
@@ -1125,7 +1057,6 @@ Points are awarded immediately upon completing an activity:
 | Record mood | 5 |
 | Record stress level | 5 |
 | Log study hours | 10 |
-| Write a journal entry | 15 |
 | Complete a daily challenge | 20 |
 | Complete a weekly challenge | 50 |
 
@@ -1174,7 +1105,6 @@ flowchart TD
 |-------|---------------|----------------|-------------|
 | 7-Day Streak | `streak` | `7` | Current streak ≥ 7 for any habit |
 | Hydration Hero | `hydration_streak` | `7` | 7 consecutive days with water logged |
-| Gratitude Starter | `journal_count` | `5` | Total journal entries ≥ 5 |
 | Challenge Conqueror | `challenges_completed` | `10` | Total completed challenges ≥ 10 |
 | Wellness Explorer | `all_categories_day` | `1` | All 6 categories logged on a single day |
 
@@ -1208,8 +1138,8 @@ The architecture follows the **principle of least privilege** — every user, mo
 
 | Actor | Minimum Access Required | Denied Access |
 |-------|------------------------|---------------|
-| Student | Own wellness records, own journal, own achievements, shared tips/challenges | Other students' data, admin functions, aggregated analytics |
-| Administrator | User list (basic info), tip/challenge management, aggregated analytics | Individual wellness records, journal entries, student passwords |
+| Student | Own wellness records, own achievements, shared tips/challenges | Other students' data, admin functions, aggregated analytics |
+| Administrator | User list (basic info), tip/challenge management, aggregated analytics | Individual wellness records, student passwords |
 | Unauthenticated user | Login page, registration page | All protected routes and data |
 
 ### 13.2 Password Security
@@ -1237,14 +1167,7 @@ flowchart TD
     G -->|"No"| I
 ```
 
-### 13.4 Journal Privacy
-
-- Journal entries are stored with `user_id` as a foreign key.
-- Every read, update, and delete query includes `WHERE user_id = :session_user_id`.
-- There is **no** admin route, API endpoint, or database view that exposes individual journal entries.
-- The `user_id` in the query is always taken from the server-side session, never from request parameters, preventing parameter tampering.
-
-### 13.5 Input Validation and Injection Prevention
+### 13.4 Input Validation and Injection Prevention
 
 | Threat | Mitigation |
 |--------|------------|
@@ -1253,7 +1176,7 @@ flowchart TD
 | **Invalid Data** | All form inputs are validated server-side for data type, range, and format before database writes. Client-side validation supplements but does not replace server-side checks. |
 | **Mass Assignment** | Only explicitly expected form fields are extracted from request data. Unexpected fields are ignored. |
 
-### 13.6 Session Security
+### 13.5 Session Security
 
 | Safeguard | Detail |
 |-----------|--------|
@@ -1263,7 +1186,7 @@ flowchart TD
 | **Inactivity timeout** | Sessions expire after a configurable period of inactivity. |
 | **Session fixation prevention** | Session ID is regenerated upon successful login. |
 
-### 13.7 Aggregated Admin Analytics
+### 13.6 Aggregated Admin Analytics
 
 - Admin analytics queries use SQL aggregate functions (`AVG`, `COUNT`, `SUM`, `GROUP BY`).
 - `user_id` is **not** included in `SELECT` clauses of admin analytics queries.
@@ -1285,7 +1208,6 @@ However, communication between the browser and Flask follows RESTful conventions
 | **Auth** | `/auth/*` | Registration, login, logout | Public (login/register); Authenticated (logout) |
 | **Dashboard** | `/dashboard` | Student dashboard | Student |
 | **Wellness** | `/wellness/*` | Log and view wellness data | Student |
-| **Journal** | `/journal/*` | CRUD for journal entries | Student |
 | **Tips** | `/tips/*` | Browse wellness tips | Student |
 | **Challenges** | `/challenges/*` | View and participate in challenges | Student |
 | **Progress** | `/progress/*` | View charts and analytics | Student |
@@ -1306,14 +1228,6 @@ WELLNESS
   GET  /wellness                → Render wellness logging form
   POST /wellness/log            → Submit daily wellness data
   GET  /wellness/history        → View past wellness records
-
-JOURNAL
-  GET  /journal                 → View journal entries list
-  GET  /journal/create          → Render new entry form
-  POST /journal/create          → Save new journal entry
-  GET  /journal/edit/<id>       → Render edit form for entry
-  POST /journal/edit/<id>       → Update journal entry
-  POST /journal/delete/<id>     → Delete journal entry
 
 TIPS
   GET  /tips                    → Browse wellness tips (with category filter)
@@ -1673,7 +1587,7 @@ The Student Wellness Companion is built on a **three-layer architecture** using 
 |---------|----------------------------------|
 | **Practical** | Uses widely adopted, well-documented technologies with abundant learning resources. No exotic frameworks, no unnecessary abstraction layers, and no enterprise-level infrastructure. A student developer can understand, build, and debug every component. |
 | **Secure** | Implements industry-standard password hashing (bcrypt), server-side sessions with secure cookie flags, role-based access control with route decorators, parameterized SQL queries to prevent injection, Jinja2 auto-escaping to prevent XSS, and strict data ownership for private content. |
-| **Modular** | Each backend module (Authentication, Wellness Tracking, Journal, Gamification, Analytics, Content Management, Admin) has clearly defined responsibilities and boundaries. Modules can be modified, extended, or replaced independently. |
+| **Modular** | Each backend module (Authentication, Wellness Tracking, Gamification, Analytics, Content Management, Admin) has clearly defined responsibilities and boundaries. Modules can be modified, extended, or replaced independently. |
 | **Maintainable** | The layered separation (Presentation → Application → Data) ensures that UI changes don't break business logic, and database changes don't force UI rewrites. Code is organized by function, not by file type. |
 | **Scalable** | While designed for a small user base, the architecture supports incremental scaling: database indexing, connection pooling, caching, API refactoring, and eventually horizontal scaling — all without a fundamental architectural overhaul. |
 | **Appropriate** | The architecture respects the project's scope, constraints, and educational objectives. It is complex enough to be a meaningful learning exercise and simple enough to be fully implementable within the project timeline. |

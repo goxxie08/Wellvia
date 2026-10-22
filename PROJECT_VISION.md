@@ -16,7 +16,7 @@ This project is not intended to replace professional healthcare, counseling, or 
 
 The Student Wellness Companion is a web-based platform designed specifically for college and university students. It consolidates multiple aspects of daily wellness — including sleep, hydration, exercise, mood, stress, and study habits — into a single, easy-to-use application.
 
-Students can log their daily activities, maintain a personal gratitude journal, participate in wellness challenges, earn achievement badges, and visualize their progress over time through interactive charts. A rule-based wellness score provides a quick snapshot of daily habits, serving purely as an engagement indicator rather than a medical assessment.
+Students can log their daily activities, participate in wellness challenges, earn achievement badges, and visualize their progress over time through interactive charts. A rule-based wellness score provides a quick snapshot of daily habits, serving purely as an engagement indicator rather than a medical assessment.
 
 On the administrative side, campus wellness coordinators can manage wellness content, create challenges, and access aggregated analytics to understand general wellness trends across the student body — all without compromising individual student privacy.
 
@@ -37,7 +37,7 @@ College students routinely face difficulty balancing academic responsibilities w
 - **Absence of consistent self-care routines** during demanding academic periods
 - **Limited understanding** of how daily habits directly affect productivity and emotional state
 
-While numerous wellness applications exist in the market, they are typically fragmented. A student might need one app for fitness tracking, another for meditation, a third for journaling, a fourth for study timers, and yet another for habit tracking. This fragmentation discourages consistent usage and makes it difficult to see the connections between different aspects of well-being.
+While numerous wellness applications exist in the market, they are typically fragmented. A student might need one app for fitness tracking, another for meditation, a third for study timers, and yet another for habit tracking. This fragmentation discourages consistent usage and makes it difficult to see the connections between different aspects of well-being.
 
 The Student Wellness Companion addresses this gap by bringing all relevant student-focused wellness features together into one cohesive, web-based platform — purpose-built for the college experience.
 
@@ -51,7 +51,6 @@ The Student Wellness Companion provides students with a centralized platform whe
 - **Mental well-being self-monitoring** — mood and stress level recording
 - **Academic tracking** — study session duration and subject categorization
 - **Habit tracking** — daily consistency monitoring with streaks
-- **Journaling** — private gratitude and reflection entries
 - **Wellness tips** — curated, practical advice on healthy routines
 - **Positive challenges** — simple, achievable daily and weekly goals
 - **Gamification** — points, badges, streaks, and wellness scores to sustain engagement
@@ -74,7 +73,6 @@ The primary users are college and university students who want to:
 - Track physical exercise and activity
 - Record mood and stress levels over time
 - Log study hours and maintain academic balance
-- Reflect through private journaling
 - Understand personal wellness trends through visual data
 - Participate in wellness challenges for motivation
 - Improve their overall study-life balance
@@ -127,7 +125,6 @@ Increase sustained engagement through:
 
 Provide tools for personal reflection:
 
-- Gratitude journal with private, dated entries
 - Daily reflection prompts
 - Mood notes attached to daily records
 - Personal wellness history for retrospective review
@@ -143,7 +140,7 @@ Display meaningful visual representations of student data:
 
 ### 6. Institutional Insights
 
-Provide administrators with aggregated, anonymized statistics to help identify general wellness trends among students. Individual identities, journal entries, and sensitive personal records are not exposed to administrators.
+Provide administrators with aggregated, anonymized statistics to help identify general wellness trends among students. Individual identities and sensitive personal records are not exposed to administrators.
 
 ---
 
@@ -153,13 +150,12 @@ Provide administrators with aggregated, anonymized statistics to help identify g
 | ---------------------- | -------------------------------------------------------------------------- |
 | Wellness Tracking      | Sleep, hydration, exercise, mood, stress, and study logging                |
 | Dashboard              | Personalized view with today's data, streaks, score, tips, and challenges  |
-| Journaling             | Private gratitude journal with full CRUD operations                        |
 | Gamification           | Points, streaks, badges, wellness score, and challenges                    |
 | Visualization          | Interactive charts for trends, comparisons, and progress                   |
 | Wellness Content       | Curated tips on sleep, hydration, exercise, stress, and time management    |
 | Challenges             | Daily and weekly achievable wellness goals                                 |
 | Admin Panel            | User management, content management, and aggregated analytics              |
-| Privacy                | Role-based access, private journals, anonymized admin analytics            |
+| Privacy                | Role-based access, student privacy, anonymized admin analytics             |
 
 ---
 
@@ -187,7 +183,6 @@ graph TB
     WT --> ST["Stress"]
     WT --> STU["Study Tracking"]
 
-    WTK --> JRN["Gratitude Journal"]
     WTK --> TIP["Wellness Tips"]
     WTK --> CHL["Challenges"]
 
@@ -230,7 +225,6 @@ The dashboard is the central hub for each student. Upon login, the dashboard dis
 - **Hydration Progress** — Visual progress toward a daily water intake goal
 - **Sleep Information** — Last recorded sleep duration and quality
 - **Exercise Summary** — Today's activity type and duration
-- **Quick Access to Journal** — A shortcut to the gratitude journal
 - **Daily Wellness Tip** — A randomly selected or rotating tip from the curated collection
 - **Active Challenge** — The current daily or weekly challenge with progress status
 
@@ -245,7 +239,6 @@ graph LR
         F["Sleep & Exercise"]
         G["Daily Tip"]
         H["Active Challenge"]
-        I["Journal Link"]
     end
 ```
 
@@ -302,16 +295,6 @@ A numeric scale from 1 to 5:
 
 ### Wellness Toolkit
 
-#### Gratitude Journal
-
-Students can write short daily entries about things they are grateful for. The journal is designed to encourage positive reflection and mindfulness.
-
-- **Date-stamped entries** — Each entry is automatically tagged with the date of creation
-- **Free-text input** — Students write in their own words without rigid templates
-- **Edit and delete** — Students can modify or remove their own entries
-- **Personal history** — A chronological view of all past journal entries
-- **Privacy** — Journal entries are strictly private. Only the student who created the entry can view, edit, or delete it. Administrators do not have access to individual journal content.
-
 #### Wellness Tips
 
 The system displays short, practical tips curated by administrators. Tips cover topics such as:
@@ -360,7 +343,6 @@ Students earn points for completing wellness activities:
 | Record mood                     | 5      |
 | Record stress level             | 5      |
 | Log study hours                 | 10     |
-| Write a journal entry           | 15     |
 | Complete a daily challenge      | 20     |
 | Complete a weekly challenge     | 50     |
 
@@ -382,8 +364,6 @@ Badges are visual achievements awarded when students reach specific milestones:
 | Hydration Hero           | Logged adequate hydration for 7 consecutive days    |
 | Early Sleeper            | Logged 7+ hours of sleep for 5 consecutive days     |
 | Active Student           | Logged exercise for 7 days in a month               |
-| Gratitude Starter        | Written 5 journal entries                           |
-| Gratitude Champion       | Written 30 journal entries                          |
 | Study Balance Champion   | Maintained balanced study hours for 2 weeks         |
 | Challenge Conqueror      | Completed 10 challenges                             |
 | Wellness Explorer        | Logged all 6 wellness categories in a single day    |
@@ -480,7 +460,7 @@ Administrators can perform the following account-related operations:
 - **Manage basic user information** — Update profile details when necessary (e.g., correcting an email address upon student request)
 - **Handle account issues** — Reset passwords or resolve locked accounts
 
-Administrators **do not** have access to individual students' journal entries, mood records, stress logs, or other sensitive personal wellness data unless a specific and justified requirement dictates otherwise.
+Administrators **do not** have access to individual students' mood records, stress logs, or other sensitive personal wellness data unless a specific and justified requirement dictates otherwise.
 
 ### Content Management
 
@@ -510,7 +490,6 @@ Wellness data is inherently personal and sensitive. The Student Wellness Compani
 
 - **Input Validation** — All user inputs are validated and sanitized on the server side to prevent injection attacks.
 - **SQL Injection Prevention** — Database queries use parameterized statements or ORM-based queries to prevent SQL injection vulnerabilities.
-- **Journal Privacy** — Journal entries are accessible only to the student who wrote them. No other user, including administrators, can read, modify, or delete another student's journal entries through the application.
 - **Data Minimization** — The system collects only the data necessary for its stated functionality. No unnecessary personal information is requested or stored.
 
 ### Administrative Data Access
@@ -541,8 +520,6 @@ The project does not claim compliance with specific legal frameworks (such as HI
 | FR-11 | The system shall calculate a daily wellness score based on logged activities.                     |
 | FR-12 | The system shall display a personalized dashboard with today's data, streaks, and score.         |
 | FR-13 | The system shall display wellness trends using interactive charts.                                |
-| FR-14 | The system shall allow students to create, edit, and delete private journal entries.              |
-| FR-15 | The system shall ensure journal entries are accessible only to the student who created them.      |
 | FR-16 | The system shall display curated wellness tips to students.                                       |
 | FR-17 | The system shall present active wellness challenges to students.                                  |
 | FR-18 | The system shall track challenge completion progress for each student.                            |
@@ -609,7 +586,6 @@ Bootstrap's responsive grid system will be used to ensure consistent behavior ac
 | Record daily wellness data       | ✓       | ✗             |
 | View personal wellness data      | ✓       | ✗             |
 | View personal wellness charts    | ✓       | ✗             |
-| Write and manage journal entries | ✓       | ✗             |
 | View wellness tips               | ✓       | ✓             |
 | Manage wellness tips (CRUD)      | ✗       | ✓             |
 | Participate in challenges        | ✓       | ✗             |
@@ -617,7 +593,6 @@ Bootstrap's responsive grid system will be used to ensure consistent behavior ac
 | View personal streaks and badges | ✓       | ✗             |
 | View aggregated analytics        | ✗       | ✓             |
 | Manage student accounts          | ✗       | ✓             |
-| Access other students' journals  | ✗       | ✗             |
 
 ---
 
@@ -702,7 +677,7 @@ graph TB
 
 **Application Layer** — The Flask backend handles HTTP requests, routes them to appropriate handler functions, manages user sessions and authentication, executes business logic (wellness score calculation, streak tracking, badge awarding), and prepares data for template rendering.
 
-**Data Layer** — MySQL stores all persistent data including user accounts, wellness records, journal entries, tips, challenges, and achievements. Pandas is used within the application layer to perform data aggregation and analytics computations before results are sent to the presentation layer.
+**Data Layer** — MySQL stores all persistent data including user accounts, wellness records, tips, challenges, and achievements. Pandas is used within the application layer to perform data aggregation and analytics computations before results are sent to the presentation layer.
 
 ### Request Flow
 
@@ -740,7 +715,6 @@ sequenceDiagram
 ```mermaid
 erDiagram
     Users ||--o{ WellnessRecords : "logs"
-    Users ||--o{ JournalEntries : "writes"
     Users ||--o{ ChallengeProgress : "participates"
     Users ||--o{ UserAchievements : "earns"
     Challenges ||--o{ ChallengeProgress : "tracked by"
@@ -773,15 +747,6 @@ erDiagram
         varchar study_subject
         int wellness_score
         datetime created_at
-    }
-
-    JournalEntries {
-        int entry_id PK
-        int user_id FK
-        date entry_date
-        text content
-        datetime created_at
-        datetime updated_at
     }
 
     WellnessTips {
@@ -835,7 +800,7 @@ erDiagram
 Stores all user accounts, both students and administrators.
 
 - **Key Fields:** `user_id` (PK), `username`, `email`, `password_hash`, `role` (student/admin), `is_active`, `created_at`
-- **Relationships:** One-to-many with WellnessRecords, JournalEntries, ChallengeProgress, UserAchievements
+- **Relationships:** One-to-many with WellnessRecords, ChallengeProgress, UserAchievements
 - **Notes:** The `role` field determines access permissions. The `is_active` flag allows administrators to deactivate accounts without deleting data.
 
 #### WellnessRecords
@@ -845,14 +810,6 @@ Stores daily wellness data logged by students. Each record represents one day's 
 - **Key Fields:** `record_id` (PK), `user_id` (FK), `record_date`, `sleep_hours`, `sleep_quality`, `water_glasses`, `exercise_type`, `exercise_duration`, `exercise_intensity`, `mood`, `stress_level`, `study_hours`, `study_sessions`, `study_subject`, `wellness_score`
 - **Relationships:** Many-to-one with Users
 - **Notes:** A consolidated table is used instead of separate tables for each metric (sleep, hydration, exercise, etc.) to simplify queries and reduce join complexity. This design is practical for a student project where the number of tracked metrics is known and stable. Optional fields (sleep quality, exercise intensity, study subject) can be NULL.
-
-#### JournalEntries
-
-Stores private gratitude journal entries written by students.
-
-- **Key Fields:** `entry_id` (PK), `user_id` (FK), `entry_date`, `content`, `created_at`, `updated_at`
-- **Relationships:** Many-to-one with Users
-- **Notes:** Journal entries are strictly private. Application-level access control ensures only the owning student can read, edit, or delete entries.
 
 #### WellnessTips
 
@@ -916,7 +873,6 @@ The following features are planned for implementation in the current version of 
 - Rule-based wellness score calculation
 - Habit streak tracking
 - Points and badge system
-- Private gratitude journal with CRUD operations
 - Curated wellness tips (admin-managed)
 - Wellness challenges (admin-created, student-participated)
 - Interactive charts for personal wellness trends (Chart.js)
@@ -974,7 +930,6 @@ The Student Wellness Companion is expected to contribute positively to the stude
 - **Healthier Routines** — Tracking and gamification provide motivation to maintain consistent sleep, hydration, exercise, and study habits.
 - **Balanced Study Habits** — Study tracking helps students recognize overwork or inconsistency and adjust accordingly.
 - **Regular Hydration and Exercise** — Daily logging with visual progress indicators makes these essential habits more tangible and achievable.
-- **Structured Reflection** — The gratitude journal offers a simple outlet for positive reflection, which research associates with improved subjective well-being.
 - **Sustained Engagement** — Points, streaks, badges, and challenges keep students returning to the platform and maintaining consistency.
 - **Institutional Insights** — Aggregated analytics give campus coordinators a data-informed understanding of general wellness trends, supporting evidence-based wellness programming.
 - **Healthier Academic Environment** — By encouraging students to balance academic effort with self-care, the platform contributes to a campus culture that values well-being alongside achievement.
@@ -993,9 +948,7 @@ The project will be considered successful if the following criteria are met:
 4. Interactive charts accurately represent historical wellness records.
 5. Habit streaks increment correctly on consecutive days and reset appropriately on missed days.
 6. Badges and achievements are awarded when milestone criteria are met.
-7. Students can create, view, edit, and delete private journal entries.
-8. Journal entries are inaccessible to any user other than the author.
-9. Wellness tips and challenges are visible to students and manageable by administrators.
+7. Wellness tips and challenges are visible to students and manageable by administrators.
 10. Challenge progress is tracked and displayed correctly.
 11. The administrator dashboard displays aggregated, anonymized analytics.
 12. Administrative analytics do not expose individual student identities or private data.
@@ -1065,8 +1018,6 @@ The project will be considered successful if the following criteria are met:
 
 ### Phase 6 — Wellness Toolkit
 
-- Implement the gratitude journal (create, read, update, delete)
-- Enforce journal privacy at the application level
 - Build the wellness tips display with category filtering
 - Implement the challenges system with participation tracking
 - Display active challenges and progress on the dashboard
@@ -1166,9 +1117,9 @@ The following assumptions underpin the project plan and design:
 
 The Student Wellness Companion envisions a future where college students have a personal, private, and engaging platform to monitor and reflect on their daily well-being. It recognizes that wellness is not a single metric but a combination of physical habits, mental state, academic effort, and personal reflection.
 
-By consolidating sleep tracking, hydration monitoring, exercise logging, mood and stress recording, study-hour tracking, journaling, and gamification into a single, cohesive web application, the project addresses the fragmentation that makes existing wellness tools impractical for busy students.
+By consolidating sleep tracking, hydration monitoring, exercise logging, mood and stress recording, study-hour tracking, and gamification into a single, cohesive web application, the project addresses the fragmentation that makes existing wellness tools impractical for busy students.
 
-The platform is designed with the student at its center. Every feature exists to provide meaningful value — whether it is a streak counter that motivates consistency, a chart that reveals a connection between sleep and stress, or a private journal entry that captures a moment of gratitude. The gamification elements are deliberately personal and non-competitive, encouraging healthy habits without creating pressure.
+The platform is designed with the student at its center. Every feature exists to provide meaningful value — whether it is a streak counter that motivates consistency, or a chart that reveals a connection between sleep and stress. The gamification elements are deliberately personal and non-competitive, encouraging healthy habits without creating pressure.
 
 For institutions, the anonymized analytics provide a window into the general wellness of the student body, enabling data-informed decisions about campus wellness initiatives without compromising individual privacy.
 
