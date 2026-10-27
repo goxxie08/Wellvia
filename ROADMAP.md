@@ -132,15 +132,45 @@ flowchart TD
 - **Deliverables:**
   - `tests/test_scoring.py`: Unit tests for score normalizations and composite score calculation.
   - `tests/test_validation.py`: Unit tests for input validators.
-  - Automated test execution via Python `pytest` / `unittest` framework.
+  - Automated test execution via Python `pytest` framework.
+
+### Phase 11 — Modern React 18 SPA & Design System (Completed)
+- **Deliverables:**
+  - Decoupled single-page application built with React 18, Vite, and React Router (`frontend/src/`).
+  - Modular component hierarchy (`components/common/`, `pages/student/`, `pages/admin/`, `pages/auth/`).
+  - Bespoke dark-mode glassmorphic design system (`styles/main.css`) with emerald/cyan accent palettes and responsive layouts.
+  - Clean removal of the mascot in favor of a modern, professional student experience.
+
+### Phase 12 — Unified Flask REST API (Completed)
+- **Deliverables:**
+  - `app/routes/api.py`: Complete JSON REST endpoints for Auth (`/api/auth/*`), Student Dashboard & Habits (`/api/student/*`), Admin Operations (`/api/admin/*`), and AI Chat (`/api/chat/*`).
+  - Session-based authentication with Werkzeug `scrypt` hashing and role-based route guards (`@api_login_required`, `@api_student_required`, `@api_admin_required`).
+
+### Phase 13 — AI Wellness Companion & Dashboard Personalization (Completed)
+- **Deliverables:**
+  - `app/services/chat_service.py` & `frontend/src/components/common/ChatbotDrawer.jsx`:
+    - Integration of official Google GenAI SDK (`gemini-2.5-flash` / `gemini-3.5-flash`).
+    - **Dashboard Data Personalization**: Ingests the logged-in student's real-time body metrics (height, weight, BMI, category), ML status, today's logged habits (sleep, water, exercise, study), streak, and score into the AI prompt and fallback engine.
+    - Crisis safety detection and immediate emergency support intervention (988 Lifeline, 741741 Crisis Text Line).
+    - Multi-model failover chain and non-repetitive offline contextual fallback assistant (`wellvia_local_assistant`).
+
+### Phase 14 — Machine Learning & 4-Section Progress Redesign (Completed)
+- **Deliverables:**
+  - `app/services/ml_service.py`: Pre-trained ML models classifying Health Status and Lifestyle Risk.
+  - `frontend/src/pages/student/ProgressPage.jsx`: Redesigned analytics dashboard structured into 4 actionable sections:
+    1. *Wellness Overview*: High-level summary cards (averages, streak, logged habits).
+    2. *Daily Wellness Charts*: Dynamic bar charts for sleep, hydration, exercise, and study across 7, 14, or 30 days.
+    3. *Your Wellness Analysis*: Real-time personalized habit evaluations based on logged data.
+    4. *Areas to Improve*: Targeted, actionable recommendations for low-performing habits.
+  - 74 automated pytest tests verifying 100% functionality and security.
 
 ---
 
 ## 5. Future Evolutionary Roadmap
 
-The modular 3-layer foundation enables future expansion beyond the current scope:
+The modern decoupled architecture provides a strong foundation for future innovations:
 
 1. **Progressive Web App (PWA):** Service worker integration for offline logging and push reminders.
-2. **REST API Decoupling:** Refactoring Flask route handlers into JSON API endpoints for mobile consumption.
-3. **Native Mobile App:** React Native or Flutter companion app for iOS and Android.
-4. **Wearable Integration:** Direct sync with Google Fit / Apple Health APIs.
+2. **Native Mobile App:** React Native companion app for iOS and Android consuming the `/api/*` REST endpoints.
+3. **Wearable Integration:** Direct sync with Google Fit / Apple Health APIs.
+4. **Expanded ML Predictive Coaching:** Long-term habit forecasting and proactive burnout warnings.

@@ -19,15 +19,16 @@ In our project, when a student clicks "Save" on the wellness form, the data trav
 ```mermaid
 flowchart TD
     subgraph Frontend ["🎨 Member 1's Work — What the User Sees"]
-        A["HTML Pages (Jinja2 Templates)"]
+        A["React 18 SPA (Vite & Lucide UI)"]
     end
 
     subgraph YourWork ["⚙️ YOUR WORK — The Brain"]
-        R["Flask Routes — Traffic Controller"]
-        AU["Authentication — Login/Register"]
-        V["Validation — Check Data is Correct"]
+        R["Flask REST API (/api/*)"]
+        AU["Authentication & Sessions"]
         BL["Business Logic — Scoring & Streaks"]
         GM["Gamification — Points & Badges"]
+        AI["AI Wellness Engine — Google Gemini SDK & Fallback"]
+        ML["Machine Learning — Health & Lifestyle Risk"]
     end
 
     subgraph Database ["🗄️ Member 3's Work — The Storage"]
@@ -35,16 +36,17 @@ flowchart TD
     end
 
     User(("👤 Student"))
-    User -->|"Fills form & clicks Save"| A
-    A -->|"Sends form data (POST request)"| R
+    User -->|"Interacts with UI"| A
+    A -->|"Sends JSON request"| R
     R --> AU
-    R --> V
-    V -->|"Data is valid"| BL
+    R --> BL
     BL --> GM
-    GM -->|"Calls Member 3's functions"| E
+    R --> AI
+    R --> ML
+    BL -->|"Calls Member 3's queries"| E
     E -->|"Returns saved data"| R
-    R -->|"Sends data to fill template"| A
-    A -->|"Shows result"| User
+    R -->|"Returns JSON response"| A
+    A -->|"Renders dynamic UI"| User
 
     style YourWork fill:#fff3e0,stroke:#f57c00,stroke-width:2px
     style Frontend fill:#e1f5fe,stroke:#0288d1,stroke-width:1px

@@ -36,93 +36,92 @@
 
 ## 1. Architecture Overview
 
-The Student Wellness Companion follows a **three-layer (layered) architecture** — a well-established pattern that separates the application into distinct tiers based on responsibility. This separation ensures that changes to the user interface do not ripple into business logic, and changes to the database do not force modifications across the entire application.
+The Student Wellness Companion follows a **modern decoupled three-layer architecture** — separating the application into a rich client-side Single Page Application (SPA), a resilient Flask RESTful Application Layer, and a normalized Data Access Layer.
 
-The three layers are:
+The primary architectural layers are:
 
 ```text
-┌─────────────────────────────────────────────┐
-│          Presentation Layer                 │
-│   HTML5 · CSS3 · Bootstrap 5 · Chart.js     │
-│   Jinja2 Templates · JavaScript             │
-├─────────────────────────────────────────────┤
-│          Application Layer                  │
-│   Flask Routes · Authentication · RBAC      │
-│   Business Logic · Wellness Score Engine    │
-│   Gamification Engine · Analytics Engine    │
-├─────────────────────────────────────────────┤
-│          Data Access Layer                  │
-│   PyMySQL · Parameterized Queries           │
-│   Pandas (Data Processing)                  │
-├─────────────────────────────────────────────┤
-│          MySQL Database                     │
-│   Users · WellnessRecords                   │
-│   Tips · Challenges · Achievements          │
-└─────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                   Presentation Layer                        │
+│   React 18 Single Page Application · Vite · React Router    │
+│   Vanilla CSS3 (Glassmorphism & Dark Theme) · Lucide React  │
+│   AI Companion Drawer · Interactive Charts & Visuals        │
+├─────────────────────────────────────────────────────────────┤
+│                    Application Layer                        │
+│   Flask 3.x REST API (/api/*) · Authentication & RBAC       │
+│   AI Chatbot Engine (Google GenAI Gemini SDK & Fallback)    │
+│   ML Health & Lifestyle Risk Service (Scikit-Learn/Joblib)  │
+│   Wellness Scoring Engine · Gamification Engine             │
+│   Analytics Processing (Pandas)                             │
+├─────────────────────────────────────────────────────────────┤
+│                    Data Access Layer                        │
+│   PyMySQL · SQLite Fallback · Parameterized Queries         │
+│   Isolated User Sessions · Connection Management            │
+├─────────────────────────────────────────────────────────────┤
+│                    MySQL Database                           │
+│   Users · WellnessRecords · WellnessTips · Challenges       │
+│   ChallengeProgress · Achievements · UserAchievements      │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ### Why This Architecture Is Appropriate
 
 | Criterion | Rationale |
 |-----------|-----------|
-| **Simplicity** | A layered architecture is straightforward to understand, implement, and debug — ideal for a BCA-level academic project. |
-| **Separation of Concerns** | Each layer has a single, well-defined responsibility. Templates handle display, Flask handles logic, and the database handles persistence. |
-| **Testability** | Business logic can be tested independently of the UI and database layers. |
-| **Maintainability** | Adding a new wellness metric or modifying the score formula only requires changes in the relevant layer, not across the entire codebase. |
-| **Learning Value** | Students gain hands-on experience with a real-world architectural pattern used extensively in professional software development. |
-
-The architecture intentionally avoids enterprise patterns like microservices, message queues, or containerized deployments. These would add complexity without proportional benefit at the current project scale.
+| **Modern UX & Interactivity** | Decoupling the frontend into a React SPA enables instantaneous state transitions, smooth modal drawers, and responsive client feedback without page reloads. |
+| **Separation of Concerns** | The frontend manages UI rendering, navigation, and client state. Flask acts as a pure REST API handling business logic, ML inference, and AI proxying. |
+| **Testability** | Backend logic, security decorators, ML classifiers, and chat fallbacks can be tested via pytest independently of the React frontend. |
+| **Resilience & Safety** | The AI chatbot is protected with a multi-model fallback chain and local offline guidance, ensuring students always receive wellness advice even during API outages. |
+| **Maintainability** | Adding new habit categories, modifying the ML model, or redesigning charts requires changes only in the targeted module without cascading rewrites. |
 
 ---
 
 ## 2. Architectural Style
 
-The Student Wellness Companion uses a **three-layer architecture** with **server-side rendering**. Flask serves as both the web server and application framework, rendering HTML pages on the server using Jinja2 templates and delivering fully composed pages to the browser.
+Wellvia utilizes a **decoupled Client-Server Architecture** with a **React 18 SPA Frontend** communicating with a **Flask 3.x RESTful Backend**.
 
-### 2.1 Presentation Layer
+### 2.1 Presentation Layer (React 18 + Vite)
 
-The Presentation Layer is responsible for everything the user sees and interacts with in the browser.
-
-**Responsibilities:**
-
-- Rendering HTML pages via Jinja2 templates
-- Applying styling and responsive layout using CSS3 and Bootstrap 5
-- Client-side form validation using JavaScript (supplementing server-side validation)
-- Interactive data visualization using Chart.js (line charts, bar charts, pie charts, donut charts)
-- Displaying the Student Dashboard with real-time wellness data, streaks, tips, and challenges
-- Displaying the Admin Dashboard with aggregated analytics and management tools
-- Providing navigation, form inputs, and interactive UI components
-
-**Boundaries:**
-
-- The Presentation Layer does **not** contain business logic, database queries, or authentication decisions.
-- All form submissions are sent to Flask routes for server-side processing.
-- Chart.js receives pre-processed data from the backend via Jinja2 template variables or embedded JSON.
-
-### 2.2 Application Layer
-
-The Application Layer contains all server-side logic, acting as the brain of the application.
+The Presentation Layer is built as a Single Page Application in the `frontend/` directory and compiled via Vite into static assets served by Flask.
 
 **Responsibilities:**
 
-- **Routing:** Mapping HTTP requests to handler functions via Flask routes
-- **Authentication:** Verifying user identity during login, managing sessions, hashing passwords using Werkzeug (bcrypt)
-- **Authorization:** Enforcing role-based access control (RBAC) — determining whether a Student or Administrator can access a given route
-- **Business Logic:**
-  - Wellness score calculation from daily inputs
-  - Streak computation for consecutive daily habits
-  - Points awarding for completed wellness activities
-  - Badge and achievement eligibility checks
-  - Challenge progress tracking
-- **Validation:** Server-side validation of all form inputs before database writes
-- **Analytics Processing:** Aggregating wellness data using Pandas for chart generation and admin analytics
-- **Template Rendering:** Passing processed data to Jinja2 templates for page composition
+- Client-side routing with `react-router-dom` for both Student and Admin views.
+- Dynamic component hierarchy:
+  - **Student Dashboard**: Live wellness score, streak counters, body metric summaries, and quick-action log prompts.
+  - **Redesigned Progress & Analytics**: 4-section layout with high-level KPI cards, daily wellness bar charts, personalized habit analysis, and actionable improvement recommendations.
+  - **AI Wellness Companion**: Drawer component (`ChatbotDrawer.jsx`) communicating with `/api/chat/message`, offering smooth auto-scrolling, rich text rendering, and immediate crisis support banners.
+  - **Daily Logging & Habit Forms**: Interactive inputs with client-side bounds checking.
+  - **BMI & ML Assessment**: Instant BMI calculation, ML health classification display, and non-clinical advisories.
+  - **Admin Management**: Aggregated student analytics, tip curation, challenge creation, and user management.
+- Responsive styling using custom CSS design tokens with dark glassmorphic styling, neon emerald accents, and fluid layouts.
 
 **Boundaries:**
 
-- The Application Layer does **not** directly render HTML or execute client-side JavaScript.
-- Database access is performed through parameterized queries via PyMySQL or through a thin data access abstraction within this layer.
-- Business rules (e.g., "a streak resets if a day is missed") are implemented here, not in the database or frontend.
+- The Presentation Layer does not execute database queries or hold sensitive API keys (e.g. `GEMINI_API_KEY`).
+- Communicates exclusively with the backend via JSON over HTTP (`/api/*`).
+
+### 2.2 Application Layer (Flask REST API + AI & ML Engines)
+
+The Application Layer exposes a unified REST API (`/api/*`) and orchestrates business logic, AI interactions, and Machine Learning models.
+
+**Responsibilities:**
+
+- **RESTful Routing (`app/routes/api.py`):** Structured endpoints for Auth (`/api/auth/*`), Student Dashboard & Habits (`/api/student/*`), Admin Operations (`/api/admin/*`), and AI Chat (`/api/chat/*`).
+- **AI Wellness Engine (`app/services/chat_service.py`):**
+  - Uses the official Google GenAI SDK (`gemini-2.5-flash` / `gemini-3.5-flash`).
+  - **Dashboard Context Injection**: Automatically personalizes responses based on the logged-in student's real-time dashboard data (height, weight, BMI, today's sleep quality, hydration, exercise, streak, and score).
+  - **Crisis Safety & Intervention**: Evaluates self-harm keywords and immediately triggers emergency helpline resources (988 Lifeline, 741741 Crisis Text Line).
+  - **Multi-Model & Local Fallbacks**: Fails over gracefully to backup models or a non-repetitive local assistant (`wellvia_local_assistant`) if offline or rate-limited.
+- **Machine Learning Services (`app/services/ml_service.py`):**
+  - Pre-trained models predicting Health Status and Lifestyle Risk based on physical metrics and activity logs.
+- **Scoring & Gamification:** Rule-based Wellness Score (0–100), streak computation, points accumulation, and badge triggers.
+- **Authentication & Security:** Werkzeug password hashing (`scrypt`), secure HTTP-only cookies, and Role-Based Access Control (`@api_login_required`, `@api_student_required`, `@api_admin_required`).
+
+**Boundaries:**
+
+- All sensitive keys (`GEMINI_API_KEY`, `SECRET_KEY`) reside strictly in server environment variables.
+- Raw health and physical metrics are never logged or exposed across student sessions.
 
 ### 2.3 Data Access Layer
 

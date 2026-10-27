@@ -45,18 +45,20 @@ The Student Wellness Companion addresses this gap by bringing all relevant stude
 
 ## Proposed Solution
 
-The Student Wellness Companion provides students with a centralized platform where they can record, monitor, and reflect on different aspects of their daily routine. The platform combines:
+The Student Wellness Companion provides students with a centralized, intelligent platform where they can record, monitor, and reflect on different aspects of their daily routine. The platform combines:
 
-- **Physical wellness tracking** — sleep, hydration, and exercise logging
+- **Physical wellness tracking** — sleep duration & quality, hydration, and exercise logging
 - **Mental well-being self-monitoring** — mood and stress level recording
-- **Academic tracking** — study session duration and subject categorization
+- **Academic tracking** — study session duration and daily study volume
+- **AI Wellness Companion** — conversational mental and physical wellness guidance powered by Google Gemini, directly referencing the student's real-time dashboard metrics with emergency safety protocols
+- **Machine Learning Health Assessment** — trained ML models evaluating physical metrics and lifestyle parameters for non-clinical risk classification
+- **Redesigned 4-Section Progress Analytics** — structured into Wellness Overview, Daily Wellness Charts, Your Wellness Analysis, and Areas to Improve
 - **Habit tracking** — daily consistency monitoring with streaks
-- **Wellness tips** — curated, practical advice on healthy routines
-- **Positive challenges** — simple, achievable daily and weekly goals
-- **Gamification** — points, badges, streaks, and wellness scores to sustain engagement
-- **Progress visualization** — interactive charts and trend analysis
+- **Wellness tips** — curated, practical advice on healthy student routines
+- **Positive challenges** — simple, achievable daily and weekly goals with reward points
+- **Gamification** — points, badges, streaks, and composite wellness scores to sustain engagement
 
-The system transforms manually entered daily information into simple visual insights, helping students understand their habits and identify areas for improvement. All data entry is manual and self-reported; the system does not integrate with wearable devices or external health APIs in its current scope.
+The system transforms manually entered daily information into actionable visual insights, helping students understand their habits and identify areas for improvement. All data entry is manual and self-reported; the system does not integrate with wearable devices or external health APIs in its current scope.
 
 **Important:** The application is positioned as a **wellness and self-awareness tool**. It does not perform medical diagnosis, provide clinical recommendations, or replace professional mental-health treatment.
 

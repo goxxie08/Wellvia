@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+pythonimport React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
 import { Award, PlusCircle, Trash2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
@@ -136,7 +136,7 @@ export function AdminChallengesPage() {
       )}
 
       <div className="grid-2" style={{ alignItems: 'start' }}>
-        
+
         {/* Create Challenge Form */}
         <div className="glass-card">
           <h2 style={{ fontSize: '1.15rem', fontWeight: 600, color: '#fff', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>

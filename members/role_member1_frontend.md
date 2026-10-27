@@ -19,13 +19,13 @@ In our project, when a student opens `http://localhost:5000` in their browser, e
 ```mermaid
 flowchart TD
     subgraph YourWork ["🎨 YOUR WORK — What the User Sees"]
-        A["HTML Pages (Jinja2 Templates)"]
-        B["CSS Styles (Bootstrap 5 + Custom)"]
-        C["JavaScript (Chart.js Graphs)"]
+        A["React 18 Single Page Application (Vite)"]
+        B["CSS Styles (Dark Glassmorphic Design System)"]
+        C["AI Companion Chat Drawer & Interactive Charts"]
     end
 
     subgraph Backend ["⚙️ Member 2's Work — The Brain"]
-        D["Flask Routes (Python Logic)"]
+        D["Flask REST API & AI/ML Services (Python)"]
     end
 
     subgraph Database ["🗄️ Member 3's Work — The Storage"]
@@ -36,10 +36,11 @@ flowchart TD
     User -->|Opens website| A
     A --> B
     A --> C
-    A -->|Sends form data| D
-    D -->|Asks for / saves data| E
+    A -->|Sends JSON REST requests| D
+    D -->|Queries & saves data| E
     E -->|Returns data| D
-    D -->|Sends data back to fill templates| A
+    D -->|Returns JSON responses| A
+    A -->|Renders dynamic UI| User
 
     style YourWork fill:#e1f5fe,stroke:#0288d1,stroke-width:2px
     style Backend fill:#fff3e0,stroke:#f57c00,stroke-width:1px

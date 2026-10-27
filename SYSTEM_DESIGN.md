@@ -7,97 +7,85 @@
 
 ## 1. System Overview
 
-The Student Wellness Companion is a web-based application built on a practical three-layer architecture. It allows college students to track daily wellness metrics and participate in challenges, while providing administrators with anonymized, aggregated insights.
-
-The system flow relies on a client-server model where the frontend (rendered HTML/JS) communicates with a Flask backend, which in turn interacts with a MySQL database.
+The Student Wellness Companion (Wellvia) is a modern web application built on a decoupled architecture. A client-side React 18 Single Page Application communicates via JSON REST APIs with a Python Flask application layer, backed by machine learning models, the Google GenAI Gemini engine, and a MySQL relational database.
 
 ```mermaid
 flowchart TD
-    User["User (Student/Admin)"]
-    Frontend["Frontend<br/>(HTML, CSS, Bootstrap, Chart.js)"]
-    Backend["Flask Backend<br/>(Routes & Controllers)"]
-    BusinessLogic["Business Logic Layer<br/>(Services, Gamification, Scoring)"]
-    Database[("MySQL Database<br/>(Persistent Storage)")]
-    Analytics["Analytics Processing<br/>(Pandas)"]
+    User["Student / Admin User"]
+    Frontend["React 18 SPA<br/>(Vite, React Router, Lucide, Custom CSS)"]
+    API["Flask REST API Layer<br/>(/api/auth, /api/student, /api/admin, /api/chat)"]
+    Chatbot["AI Wellness Companion<br/>(Google GenAI SDK & Local Fallback)"]
+    ML["ML Assessment Engine<br/>(Health Status & Lifestyle Risk)"]
+    BusinessLogic["Core Business Logic<br/>(Scoring, Gamification, Streaks)"]
+    Analytics["Analytics Processing<br/>(Pandas & Aggregation)"]
+    Database[("MySQL Relational Database<br/>(Parameterized Queries)")]
 
     User -->|Interacts with UI| Frontend
-    Frontend -->|HTTP Requests| Backend
-    Backend -->|Delegates processing| BusinessLogic
-    BusinessLogic -->|CRUD Operations| Database
-    Database -->|Raw Data| Analytics
-    Analytics -->|Processed Data| Backend
-    Backend -->|Template Rendering| Frontend
-    Frontend -->|Visualizes Data| User
+    Frontend -->|JSON REST Requests| API
+    API -->|Prompt & Context| Chatbot
+    API -->|Features & Inference| ML
+    API -->|Delegates processing| BusinessLogic
+    BusinessLogic -->|CRUD & Records| Database
+    Database -->|Raw Metrics| Analytics
+    Analytics -->|Aggregated Data| API
+    API -->|JSON Responses| Frontend
+    Frontend -->|Visualizes Data & Chat| User
 ```
 
 ---
 
 ## 2. Design Goals
 
-The system design prioritizes the following goals, suitable for a BCA-level project:
+The system design prioritizes the following principles:
 
-*   **Simplicity:** Avoiding over-engineering (no microservices or complex cloud-native orchestration). The monolith Flask app is easy to understand and deploy.
-*   **Maintainability:** Using a modular directory structure and separating routing, business logic, and data access.
-*   **Security:** Hashing passwords with `bcrypt`, preventing SQL injection via parameterized queries, and securing sessions.
-*   **Privacy:** Strict authorization checks ensuring students can only access their own data. Admin analytics are heavily aggregated.
-*   **Modularity:** Distinct modules for Authentication, Wellness Tracking, Gamification, etc.
-*   **Usability:** A responsive, mobile-first frontend using Bootstrap 5.
-*   **Reliability:** Robust server-side validation to ensure database integrity.
-*   **Extensibility:** A clean relational schema and layered backend that allows future integration of APIs or new tracking categories.
+*   **Modern Interactivity:** Instant SPA page switches and modal transitions via React 18 and Vite.
+*   **Contextual AI Personalization:** AI companion dynamically reflects the student's real-time dashboard data (height, weight, BMI, sleep, water, streaks) to give direct, personalized answers.
+*   **Failsafe Resilience:** Multi-model fallback chain and local offline guidance ensuring 100% response availability.
+*   **Security & Privacy:** Passwords hashed with `scrypt`/`pbkdf2:sha256`, parameterized SQL queries, strict session isolation, and non-disclosure of individual student data in admin reports.
+*   **Simplicity & Maintainability:** Clean separation between React presentation components, Flask REST endpoints, and modular services (`chat_service`, `ml_service`, `scoring`, `wellness`, `gamification`).
 
 ---
 
 ## 3. System Modules
 
-The system is divided into distinct functional modules.
+The system is organized into distinct, focused modules.
 
 ### Student Modules
 
-1.  **Authentication:**
-    *   *Purpose:* Handle user registration, login, logout, and session management.
-    *   *Processing:* Hashes passwords, creates server-side sessions.
-2.  **Student Profile:**
-    *   *Purpose:* Display and update basic user information.
+1.  **Authentication & Sessions:**
+    *   *Purpose:* Handles user registration, login, logout, and session state.
+    *   *Processing:* `scrypt` password hashing, HTTP-only session cookies.
+2.  **Student Profile & Onboarding:**
+    *   *Purpose:* Manages student demographics, height, weight, and onboarding metric flags.
 3.  **Dashboard:**
-    *   *Purpose:* Central hub displaying today's summary, streaks, score, and active challenges.
-4.  **Wellness Tracking (Core):**
-    *   *Purpose:* Central service coordinating the logging of all daily metrics.
-5.  **Sleep Tracking:**
-    *   *Inputs:* Hours slept (float), Quality (1-5).
-6.  **Hydration Tracking:**
-    *   *Inputs:* Glasses of water (integer).
-7.  **Exercise Tracking:**
-    *   *Inputs:* Type, Duration (minutes), Intensity.
-8.  **Mood Tracking:**
-    *   *Inputs:* Mood level (1-5).
-9.  **Stress Tracking:**
-    *   *Inputs:* Stress level (1-5).
-10. **Study Tracking:**
-    *   *Inputs:* Hours, Sessions, Subject.
-11. **Wellness Tips:**
-    *   *Purpose:* Read-only display of admin-curated tips.
-12. **Challenges:**
-    *   *Purpose:* View active challenges and mark them as complete.
-14. **Gamification:**
-    *   *Purpose:* Core engine calculating streaks and awarding points based on events.
-15. **Achievements:**
-    *   *Purpose:* Evaluates conditions to award badges (e.g., "7-Day Streak").
-16. **Progress Analytics:**
-    *   *Purpose:* Generates personal charts using Pandas and Chart.js.
+    *   *Purpose:* Real-time hub presenting the daily composite wellness score (0–100), streak counters, body metric cards, and quick daily log access.
+4.  **AI Wellness Companion (`chat_service.py` & `ChatbotDrawer.jsx`):**
+    *   *Purpose:* Empathetic conversational guidance for student mental and physical health.
+    *   *Features:* Dashboard metrics injection, crisis safety intervention (988 / 741741), multi-model fallback, and offline local fallback.
+5.  **Machine Learning Health Assessment (`ml_service.py`):**
+    *   *Purpose:* Predicts Health Status and Lifestyle Risk using trained scikit-learn models based on physical parameters and activity logs.
+6.  **Daily Wellness Logging (Core):**
+    *   *Inputs:* Sleep (duration & quality 1–5), Hydration (glasses), Exercise (type, duration, intensity), Mood (1–5), Stress (1–5), Study (hours, sessions).
+7.  **Redesigned Progress Analytics (`ProgressPage.jsx`):**
+    *   *Section 1 — Wellness Overview:* High-level statistics (averages, streak, total entries).
+    *   *Section 2 — Daily Wellness Charts:* Dynamic bar charts for sleep, hydration, exercise, and study across 7, 14, or 30 days.
+    *   *Section 3 — Your Wellness Analysis:* Real-time habit pattern evaluations based on saved data.
+    *   *Section 4 — Areas to Improve:* Actionable targeted recommendations for low-performing habits.
+8.  **Wellness Tips & Challenges:**
+    *   *Purpose:* Daily rotating tips and goal-based habit challenges with reward points.
+9.  **Gamification Engine:**
+    *   *Purpose:* Calculates consecutive habit streaks, awards points, and unlocks milestone achievement badges.
 
 ### Admin Modules
 
-17. **Admin Authentication:**
-    *   *Purpose:* Secure login for pre-created admin accounts.
-17. **User Management:**
-    *   *Purpose:* View student lists, activate/deactivate accounts.
-    *   *Access:* Cannot view private student wellness data.
-19. **Wellness Tip Management:**
-    *   *Purpose:* CRUD operations for system-wide tips.
-20. **Challenge Management:**
-    *   *Purpose:* Create, edit, and retire challenges.
-21. **Analytics and Reporting:**
-    *   *Purpose:* View system-wide, aggregated, and anonymized trends.
+10. **Admin Authentication:**
+    *   *Purpose:* Secure login for pre-created administrator accounts.
+11. **User Management:**
+    *   *Purpose:* View student roster and activate/deactivate accounts without viewing private metrics.
+12. **Content Management:**
+    *   *Purpose:* CRUD tools for wellness tips and campus challenges.
+13. **Aggregated Reporting:**
+    *   *Purpose:* Campus-wide, anonymized trends and distribution charts.
 
 ---
 
