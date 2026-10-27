@@ -163,59 +163,66 @@ flowchart TD
     Student["👨‍🎓 Student"]
     Admin["🔧 Administrator"]
 
-    subgraph PL["Presentation Layer"]
-        UI["Web Interface<br/>HTML5 · Bootstrap 5 · CSS3"]
-        Charts["Chart.js<br/>Data Visualization"]
-        JS["JavaScript<br/>Client-Side Logic"]
+    subgraph PL["Presentation Layer — React 18 SPA (Vite)"]
+        UI["Web Interface<br/>React 18 · Custom CSS · Glassmorphism"]
+        ChatbotUI["AI Companion Drawer<br/>ChatbotDrawer.jsx"]
+        Charts["Interactive Visual Analytics<br/>Progress Charts · SVG/CSS"]
     end
 
-    subgraph AL["Application Layer — Flask"]
-        Router["Route Handler"]
-        Auth["Authentication<br/>& Authorization"]
-        WellnessService["Wellness<br/>Tracking Service"]
-        GamificationService["Gamification<br/>Service"]
-        AnalyticsService["Analytics<br/>Service"]
-        ContentService["Content<br/>Management Service"]
-        ScoreEngine["Wellness Score<br/>Engine"]
+    subgraph AL["Application Layer — Flask REST API"]
+        Router["REST API Router (/api/*)<br/>app/routes/api.py"]
+        Auth["Authentication & RBAC<br/>Flask Sessions · scrypt"]
+        ChatbotEngine["AI Wellness Engine<br/>Google GenAI SDK & Fallback"]
+        MLEngine["ML Assessment Engine<br/>Random Forest Classifiers"]
+        WellnessService["Wellness Service<br/>Habit Upsert & History"]
+        GamificationService["Gamification Service<br/>Streaks & Points Engine"]
+        AnalyticsService["Analytics Service<br/>Pandas Aggregation"]
+        ScoreEngine["Wellness Score Engine<br/>Rule-Based Normalization"]
     end
 
     subgraph DL["Data Layer"]
-        DAL["Data Access Layer<br/>PyMySQL · Pandas"]
-        DB[("MySQL<br/>Database")]
+        DAL["Data Access Layer<br/>PyMySQL / SQLite Parameterized Queries"]
+        DB[("MySQL Database<br/>users, bmi_history, wellness_records...")]
     end
 
-    Student --> UI
-    Admin --> UI
-    UI --> Router
-    Charts -.->|"Receives processed data"| AnalyticsService
-    JS -.->|"Form submissions"| Router
+    Student -->|Interacts with SPA| UI
+    Student -->|Chat Prompts| ChatbotUI
+    Admin -->|Admin Dashboard| UI
 
+    UI -->|JSON REST Requests| Router
+    ChatbotUI -->|POST /api/chat/message| Router
     Router --> Auth
+    Router --> ChatbotEngine
+    Router --> MLEngine
     Router --> WellnessService
     Router --> GamificationService
     Router --> AnalyticsService
-    Router --> ContentService
 
     WellnessService --> ScoreEngine
     WellnessService --> DAL
     GamificationService --> DAL
     AnalyticsService --> DAL
-    ContentService --> DAL
     Auth --> DAL
     ScoreEngine --> DAL
+    MLEngine --> DAL
+    ChatbotEngine -.->|"Injects context"| DAL
 
     DAL --> DB
+    Router -->|JSON Responses| UI
+    Router -->|JSON Messages| ChatbotUI
+    AnalyticsService -->|JSON Data Series| Charts
 ```
 
 ### Diagram Explanation
 
-1. **Students and Administrators** interact with the system through the same **Web Interface**, but see different dashboards and have different permissions.
-2. The **Route Handler** in Flask receives all HTTP requests and delegates to the appropriate service based on the URL and HTTP method.
-3. **Authentication & Authorization** is consulted on every request to verify identity and enforce role-based access.
-4. **Service modules** (Wellness, Gamification, Analytics, Content) encapsulate domain-specific business logic.
-5. The **Wellness Score Engine** is a dedicated calculation module invoked by the Wellness Tracking Service.
-6. All services access the database through the **Data Access Layer**, which uses PyMySQL for queries and Pandas for complex aggregation.
-7. **Chart.js** in the Presentation Layer receives pre-processed data from the Analytics Service, rendered into template variables by Flask.
+1. **Students and Administrators** interact with a modern **React 18 Single Page Application (SPA)** that communicates with the backend exclusively via asynchronous JSON REST APIs (`/api/*`).
+2. The **REST API Router (`app/routes/api.py`)** receives HTTP requests, verifies authentication state via session cookies, and delegates to the appropriate domain service or AI/ML module.
+3. **Authentication & Authorization** enforces Role-Based Access Control (`@api_login_required`, `@api_student_required`, `@api_admin_required`) using secure `scrypt` password hashing.
+4. The **AI Wellness Engine (`app/services/chat_service.py`)** interfaces with the official Google GenAI SDK (`gemini-2.5-flash` / `gemini-3.5-flash`), injects real-time student dashboard metrics for personalization, and provides safety crisis interception and local offline fallback.
+5. The **Machine Learning Engine (`app/services/ml_service.py`)** loads pre-trained Random Forest models (`model_bmi_rf.joblib`, `model_lifestyle_rf.joblib`) for non-clinical health and lifestyle risk assessments.
+6. The **Wellness Score Engine** computes the rule-based composite wellness score (0–100) dynamically.
+7. All database persistence uses parameterized SQL queries via **PyMySQL** (or SQLite fallback) preventing SQL injection attacks.
+8. Interactive **Progress Charts & Insights** in the frontend render dynamically from JSON data series computed by the Analytics service.
 
 ---
 
@@ -225,16 +232,18 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    subgraph Frontend["Frontend Components"]
-        AuthUI["Authentication UI<br/>Login · Register · Logout"]
-        StudentDash["Student Dashboard<br/>Score · Streaks · Tips"]
-        WellnessForms["Wellness Tracking Forms<br/>Sleep · Water · Exercise<br/>Mood · Stress · Study"]
-        TipsUI["Wellness Tips Browser<br/>Category Filtering"]
-        ChallengeUI["Challenge UI<br/>Active Challenges · Progress"]
-        ProgressUI["Progress & Analytics UI<br/>Charts · Trends · Insights"]
+    subgraph Frontend["Frontend Components (React 18 SPA)"]
+        AuthUI["Authentication UI<br/>LoginPage · RegisterPage"]
+        StudentDash["Student Dashboard<br/>Score · Streaks · Habits · Tips"]
+        WellnessForms["Wellness Logging<br/>DailyLogPage.jsx"]
+        ChatbotUI["AI Companion Drawer<br/>ChatbotDrawer.jsx"]
+        BodyMetricsUI["BMI & ML Health UI<br/>BodyMetricsPage.jsx"]
+        TipsUI["Wellness Tips Browser<br/>TipsPage.jsx"]
+        ChallengeUI["Challenge Hub<br/>ChallengesPage.jsx"]
+        ProgressUI["Progress Analytics (4 Sections)<br/>ProgressPage.jsx"]
         AdminDash["Admin Dashboard<br/>Aggregated Analytics"]
-        ContentMgmt["Content Management UI<br/>Tips CRUD · Challenge CRUD"]
-        UserMgmt["User Management UI<br/>Account List · Activate/Deactivate"]
+        ContentMgmt["Content Management UI<br/>Tips & Challenges Admin"]
+        UserMgmt["User Management UI<br/>Account List & Toggle"]
     end
 ```
 
@@ -242,91 +251,91 @@ flowchart LR
 
 | Attribute | Detail |
 |-----------|--------|
-| **Purpose** | Enable students to register, log in, and log out securely |
-| **Responsibilities** | Render registration and login forms; display validation errors; handle logout confirmation |
-| **Inputs** | Username, email, password (registration); username/email and password (login) |
-| **Outputs** | Redirect to Student Dashboard on success; error messages on failure |
-| **Dependencies** | Authentication Module (backend) |
+| **Purpose** | Enable students and administrators to register, log in, and log out securely |
+| **Responsibilities** | Render login and registration views; client-side validation; session state management via `/api/auth/me` |
+| **Inputs** | Email/username, password |
+| **Outputs** | Authenticated session cookie; redirect to Dashboard |
+| **Dependencies** | Authentication Module (`app/routes/api.py`) |
 
 #### Student Dashboard
 
 | Attribute | Detail |
 |-----------|--------|
-| **Purpose** | Central hub displaying the student's current wellness snapshot |
-| **Responsibilities** | Display today's wellness score, tracked activities, habit streaks, recent mood, hydration progress, sleep/exercise summary, daily tip, and active challenge |
-| **Inputs** | Pre-processed data from the Application Layer (today's records, scores, streaks, tip of the day, active challenge) |
-| **Outputs** | Rendered dashboard page with interactive widgets |
-| **Dependencies** | Wellness Tracking Module, Gamification Module, Content Management Module, Analytics Module |
+| **Purpose** | Central hub displaying the student's real-time wellness snapshot |
+| **Responsibilities** | Display today's wellness score (0–100), habit streaks, body metrics & ML health summary, habit quickview cards (sleep, water, exercise, study), daily rotating tip, and active challenges |
+| **Inputs** | JSON payload from `/api/student/dashboard` |
+| **Outputs** | Interactive dashboard widgets and quick log triggers |
+| **Dependencies** | Backend REST API (`api.py`), Wellness Service, Gamification Service |
+
+#### AI Wellness Companion UI
+
+| Attribute | Detail |
+|-----------|--------|
+| **Purpose** | Conversational AI companion providing physical and mental wellness guidance |
+| **Responsibilities** | Floating trigger button and slide-out chat drawer (`ChatbotDrawer.jsx`); formats markdown text and lists; preserves session chat history; renders crisis intervention badges; provides retry buttons on network timeouts |
+| **Inputs** | Student text prompts; conversation history array |
+| **Outputs** | Contextually personalized wellness advice referencing student dashboard data |
+| **Dependencies** | Chatbot Service (`chat_service.py`), official Google GenAI SDK |
+
+#### Body Metrics & ML Health UI
+
+| Attribute | Detail |
+|-----------|--------|
+| **Purpose** | Body Mass Index calculator and Machine Learning health assessment interface |
+| **Responsibilities** | Input height and weight; trigger real-time WHO BMI calculation; display Random Forest Health Status classification and Lifestyle Risk assessment; display longitudinal history and non-clinical health tips |
+| **Inputs** | Height (cm), Weight (kg), Gender |
+| **Outputs** | BMI value (2 decimal places), category badge, ML Health Status, ML Lifestyle Risk, and advice |
+| **Dependencies** | BMI Calculator (`bmi.py`), ML Service (`ml_service.py`), `/api/student/body-metrics` |
 
 #### Wellness Tracking Forms
 
 | Attribute | Detail |
 |-----------|--------|
 | **Purpose** | Allow students to log daily wellness data across six categories |
-| **Responsibilities** | Render input forms for sleep (hours, quality), hydration (glasses), exercise (type, duration, intensity), mood (1–5 scale), stress (1–5 scale), and study (hours, sessions, subject). Perform client-side validation before submission. |
-| **Inputs** | User-entered wellness data |
-| **Outputs** | POST request to Flask backend; updated dashboard on success |
-| **Dependencies** | Wellness Tracking Module (backend), Bootstrap form components |
+| **Responsibilities** | Input forms for sleep (hours, quality 1–5), hydration (glasses), exercise (type, duration, intensity), mood (1–5), stress (1–5), and study (hours, sessions). Enforce client-side validation bounds |
+| **Inputs** | User-entered wellness metrics |
+| **Outputs** | Asynchronous POST request to `/api/student/wellness` |
+| **Dependencies** | Wellness Service (`wellness.py`), Scoring Service (`scoring.py`) |
 
 #### Wellness Tips UI
 
 | Attribute | Detail |
 |-----------|--------|
 | **Purpose** | Display curated wellness tips with optional category filtering |
-| **Responsibilities** | Render tips list, support filtering by category (sleep, hydration, exercise, stress, study, general) |
-| **Inputs** | Tip data from backend |
-| **Outputs** | Filtered, paginated tip display |
-| **Dependencies** | Content Management Module (backend) |
+| **Responsibilities** | Filter tips by category (Sleep, Hydration, Exercise, Stress, Study, General) |
+| **Inputs** | JSON tip list from `/api/student/tips` |
+| **Outputs** | Filtered cards with actionable advice |
+| **Dependencies** | Tips Service (`api.py`) |
 
 #### Challenge UI
 
 | Attribute | Detail |
 |-----------|--------|
 | **Purpose** | Display active challenges and allow students to participate and track progress |
-| **Responsibilities** | Show daily/weekly challenges, display completion status, allow marking challenges as completed |
-| **Inputs** | Challenge definitions and progress data from backend |
-| **Outputs** | Challenge participation actions; updated progress display |
-| **Dependencies** | Challenge Module, Gamification Module (backend) |
+| **Responsibilities** | Show daily/weekly challenges, display completion status, handle completion action with instant point awards |
+| **Inputs** | Challenge definitions from `/api/student/challenges` |
+| **Outputs** | Challenge completion POST to `/api/student/challenges/<id>/complete` |
+| **Dependencies** | Gamification Service (`gamification.py`) |
 
-#### Progress & Analytics UI
-
-| Attribute | Detail |
-|-----------|--------|
-| **Purpose** | Visualize personal wellness trends using interactive charts |
-| **Responsibilities** | Render Chart.js charts for sleep trends, hydration progress, exercise frequency, mood/stress trends, study hours, wellness score history, and habit completion percentages |
-| **Inputs** | Pre-aggregated chart data (JSON) from the Analytics Module |
-| **Outputs** | Interactive line, bar, pie, and donut charts |
-| **Dependencies** | Analytics Module (backend), Chart.js library |
-
-#### Admin Dashboard
+#### Progress & Analytics UI (Redesigned 4-Section Layout)
 
 | Attribute | Detail |
 |-----------|--------|
-| **Purpose** | Provide administrators with an overview of aggregated, anonymized student wellness statistics |
-| **Responsibilities** | Display summary statistics (average sleep, hydration, mood distribution, stress distribution, study hours, challenge participation) using charts and tables |
-| **Inputs** | Aggregated analytics data from the Admin Module |
-| **Outputs** | Anonymized charts and summary statistics |
-| **Dependencies** | Analytics Module, Admin Module (backend) |
+| **Purpose** | Visualize personal wellness trends and deliver personalized behavioral analysis |
+| **Responsibilities** | Structured into four actionable sections: (1) **Wellness Overview** (key metrics, averages, streak), (2) **Daily Wellness Charts** (interactive SVG bar charts for sleep, hydration, exercise, and study over 7, 14, or 30 days), (3) **Your Wellness Analysis** (real-time personalized habit evaluations based on logged data), and (4) **Areas to Improve** (targeted habit recommendations) |
+| **Inputs** | JSON analytics payload from `/api/student/progress?days=N` |
+| **Outputs** | Interactive bar charts, statistical summary cards, and personalized analytical observations |
+| **Dependencies** | Analytics Service (`analytics.py`), Pandas |
 
-#### Content Management UI
-
-| Attribute | Detail |
-|-----------|--------|
-| **Purpose** | Enable administrators to manage wellness tips and challenges |
-| **Responsibilities** | CRUD operations for tips (add, edit, delete, categorize) and challenges (create, edit, retire, set points/duration) |
-| **Inputs** | Admin-entered content data |
-| **Outputs** | Updated tips and challenges in the database |
-| **Dependencies** | Content Management Module (backend) |
-
-#### User Management UI
+#### Admin Dashboard & Management UI
 
 | Attribute | Detail |
 |-----------|--------|
-| **Purpose** | Enable administrators to view and manage student accounts |
-| **Responsibilities** | Display registered user list with basic info (username, email, registration date, status); support account activation/deactivation and password reset |
-| **Inputs** | User list and admin actions |
-| **Outputs** | Updated account statuses |
-| **Dependencies** | User Management Module (backend) |
+| **Purpose** | Provide administrators with campus-wide analytics and content curation tools |
+| **Responsibilities** | Display anonymized aggregate wellness statistics; CRUD operations for tips and challenges; student account activation/deactivation toggles |
+| **Inputs** | Aggregated data from `/api/admin/*` |
+| **Outputs** | Updated tips, challenges, and user account statuses |
+| **Dependencies** | Admin Analytics Service (`admin_analytics.py`), REST API |
 
 ---
 
@@ -334,24 +343,33 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    subgraph Backend["Backend Components — Flask Application"]
-        AuthMod["Authentication Module"]
-        UserMod["User Management Module"]
-        WellnessMod["Wellness Tracking Module"]
-        TipsMod["Wellness Tips Module"]
-        ChallengeMod["Challenge Module"]
-        GamificationMod["Gamification Module"]
-        AnalyticsMod["Analytics Module"]
-        AdminMod["Admin Module"]
-        ScoreEngine["Wellness Score Engine"]
+    subgraph Backend["Backend Components — Flask REST API"]
+        Router["Unified API Router (app/routes/api.py)"]
+        AuthMod["Authentication & RBAC Module"]
+        WellnessMod["Wellness Tracking Module (wellness.py)"]
+        ChatMod["AI Wellness Chatbot Service (chat_service.py)"]
+        MLMod["Machine Learning Service (ml_service.py)"]
+        GamificationMod["Gamification Module (gamification.py)"]
+        AnalyticsMod["Analytics Module (analytics.py)"]
+        AdminAnalyticsMod["Admin Analytics Module (admin_analytics.py)"]
+        ScoreEngine["Wellness Score Engine (scoring.py)"]
+        BMIUtil["BMI & Health Assessment Utility (bmi.py)"]
     end
 
-    AuthMod -->|"Verifies credentials"| UserMod
-    WellnessMod -->|"Triggers score calculation"| ScoreEngine
-    WellnessMod -->|"Triggers point/streak update"| GamificationMod
-    ChallengeMod -->|"Triggers point award"| GamificationMod
-    GamificationMod -->|"Checks badge eligibility"| GamificationMod
-    AdminMod -->|"Fetches aggregated data"| AnalyticsMod
+    Router --> AuthMod
+    Router --> WellnessMod
+    Router --> ChatMod
+    Router --> MLMod
+    Router --> GamificationMod
+    Router --> AnalyticsMod
+    Router --> AdminAnalyticsMod
+    Router --> BMIUtil
+
+    WellnessMod --> ScoreEngine
+    WellnessMod --> GamificationMod
+    ChatMod -.->|"Injects student dashboard context"| WellnessMod
+    MLMod -.->|"Loads joblib models"| MLMod
+    BMIUtil --> MLMod
 ```
 
 #### Authentication Module
@@ -491,17 +509,17 @@ flowchart TD
 
     K --> V["Fetch Wellness Records"]
     V --> W["Pandas Aggregation"]
-    W --> X["Chart.js Visualization"]
+    W --> X["React Analytics Dashboard"]
 ```
 
 ### Complete Student Flow
 
 1. **Entry:** The student navigates to the application URL and reaches the login/registration page.
-2. **Authentication:** The student registers (first time) or logs in with existing credentials. Passwords are verified against stored bcrypt hashes. On success, a server-side session is created with the student's user ID and role.
-3. **Dashboard:** The student is redirected to their personalized dashboard, which loads today's wellness data, current streaks, wellness score, a daily tip, and any active challenges.
+2. **Authentication:** The student registers (first time) or logs in with existing credentials. Passwords are verified against stored scrypt hashes via `check_password_hash()`. On success, a server-side session is created with the student's user ID and role.
+3. **Dashboard:** The student is redirected to their personalized dashboard, which loads today's wellness data, current streaks, wellness score, body metrics, ML health classification, a daily tip, and any active challenges.
 4. **Wellness Logging:** The student fills out wellness forms (sleep, hydration, exercise, mood, stress, study). Data is validated server-side, stored in the `WellnessRecords` table, and the wellness score is recalculated.
 5. **Gamification Triggers:** After logging, the system awards points, updates streak counts, and checks whether any badge criteria have been met. New badges are recorded in `UserAchievements`.
-6. **Analytics:** The student visits the progress page. The backend fetches historical wellness records, processes them through Pandas for aggregation, and sends structured data to Chart.js for rendering.
+6. **Analytics:** The student visits the progress page. The backend fetches historical wellness records, processes them through Pandas for aggregation, and sends structured JSON data to the React analytics dashboard for rendering.
 7. **Challenges:** The student views active challenges, joins them, and marks them as completed. Completion triggers point awards and potential badge checks.
 8. **Logout:** The student logs out, destroying the server-side session.
 
@@ -532,7 +550,7 @@ flowchart TD
 
     I --> I1["Fetch All Wellness Records"]
     I1 --> I2["Anonymize & Aggregate<br/>(Pandas)"]
-    I2 --> I3["Render Admin Charts<br/>(Chart.js)"]
+    I2 --> I3["Render Admin Charts<br/>(Visual Analytics)"]
 
     G1 --> DB[("MySQL Database")]
     G2 --> DB
@@ -546,9 +564,9 @@ flowchart TD
 
 | Separation Mechanism | Implementation |
 |----------------------|----------------|
-| **Role-based routes** | Admin routes are grouped under `/admin/*` and protected by a decorator that checks `session['role'] == 'admin'`. |
-| **Separate dashboards** | Students are redirected to `/dashboard`; administrators are redirected to `/admin/dashboard`. The two interfaces are entirely different templates. |
-| **No access to private data** | Admin routes query only aggregated data. The admin analytics module uses SQL `GROUP BY` and `AVG`/`COUNT` operations — individual user IDs are not included in the result set sent to the template. |
+| **Role-based routes** | Admin routes are grouped under `/api/admin/*` and protected by decorators checking `@api_admin_required` with `session['role'] == 'admin'`. |
+| **Separate dashboards** | Students access `/dashboard`; administrators access `/admin/dashboard`. The two interfaces are distinct React components. |
+| **No access to private data** | Admin routes query only aggregated data. The admin analytics module uses SQL `GROUP BY` and `AVG`/`COUNT` operations — individual user IDs are not included in the result set sent to the client. |
 | **Account management scope** | Admins can view usernames, emails, registration dates, and account status. They cannot view wellness records, mood logs, or stress levels for individual students. |
 | **Pre-created accounts** | Admin accounts are pre-created (seeded during setup), not self-registered. There is no public admin registration route. |
 
@@ -570,13 +588,13 @@ It determines which pages, actions, and data a verified user can access — thro
 flowchart LR
     A["Student visits<br/>/register"] --> B["Fills registration form<br/>(username, email, password)"]
     B --> C["Server-side validation<br/>(unique username/email,<br/>password complexity)"]
-    C -->|"Invalid"| D["Return errors<br/>to form"]
-    C -->|"Valid"| E["Hash password<br/>(Werkzeug/bcrypt)"]
+    C -->|"Invalid"| D["Return errors<br/>to client"]
+    C -->|"Valid"| E["Hash password<br/>(Werkzeug/scrypt)"]
     E --> F["Insert into Users table<br/>(role = 'student')"]
-    F --> G["Redirect to Login"]
+    F --> G["Return success / Redirect"]
 ```
 
-- Passwords are hashed using Werkzeug's `generate_password_hash()` with bcrypt.
+- Passwords are hashed using Werkzeug's `generate_password_hash()` with `scrypt` (`scrypt:32768:8:1`).
 - Plaintext passwords are **never** stored or logged.
 - Minimum password length and basic complexity rules are enforced.
 - Username and email uniqueness is verified before insertion.
@@ -648,18 +666,18 @@ Flask route decorators are used to enforce access control:
 
 ```mermaid
 flowchart TD
-    A["👨‍🎓 Student"] -->|"Fills wellness form"| B["HTML Form<br/>(Bootstrap)"]
-    B -->|"POST /wellness/log"| C["Flask Route Handler"]
-    C --> D["Authentication Check<br/>(session active?)"]
-    D -->|"Not authenticated"| E["Redirect to /login"]
+    A["👨‍🎓 Student"] -->|"Fills wellness form"| B["React Logging Form<br/>(Modal / Component)"]
+    B -->|"POST /api/student/log"| C["Flask REST API Handler"]
+    C --> D["Authentication Check<br/>(@api_student_required)"]
+    D -->|"Not authenticated"| E["401 Unauthorized JSON"]
     D -->|"Authenticated"| F["Server-Side Validation<br/>(data types, ranges, required fields)"]
-    F -->|"Invalid"| G["Return form with errors"]
+    F -->|"Invalid"| G["Return 400 Bad Request JSON"]
     F -->|"Valid"| H["Business Logic<br/>(normalize values)"]
     H --> I["Insert/Update<br/>WellnessRecords"]
     I --> J["Wellness Score Engine<br/>(calculate score)"]
     J --> K["Update Gamification<br/>(points, streaks)"]
     K --> L["Check Badge Eligibility"]
-    L --> M["Redirect to Dashboard<br/>(flash success message)"]
+    L --> M["Return 200 OK JSON<br/>(updated score & points)"]
 ```
 
 **Detailed flow:**
@@ -677,24 +695,24 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["👨‍🎓 Student requests<br/>Progress Charts"] -->|"GET /progress"| B["Flask Route"]
-    B --> C["Authentication Check"]
+    A["👨‍🎓 Student requests<br/>Progress Charts"] -->|"GET /api/student/progress"| B["Flask REST API Route"]
+    B --> C["Authentication Check<br/>(@api_student_required)"]
     C --> D["Fetch Wellness Records<br/>for user_id<br/>(last 7/30 days)"]
     D --> E["Pandas Processing<br/>(group by date,<br/>compute averages,<br/>fill missing days)"]
-    E --> F["Structure Chart Data<br/>(labels, datasets)"]
-    F --> G["Render Template<br/>with Chart Data"]
-    G --> H["Chart.js Renders<br/>Interactive Charts"]
+    E --> F["Structure JSON Payload<br/>(daily records, averages,<br/>insights, areas to improve)"]
+    F --> G["Return JSON Response"]
+    G --> H["React Dashboard Renders<br/>Interactive SVG/CSS Charts"]
 ```
 
 ```mermaid
 flowchart TD
-    A["🔧 Admin requests<br/>Analytics"] -->|"GET /admin/analytics"| B["Flask Route"]
-    B --> C["Admin Role Check"]
+    A["🔧 Admin requests<br/>Analytics"] -->|"GET /api/admin/overview"| B["Flask REST API Route"]
+    B --> C["Admin Role Check<br/>(@api_admin_required)"]
     C --> D["Fetch ALL<br/>WellnessRecords<br/>(no user identifiers<br/>in output)"]
     D --> E["Pandas Aggregation<br/>(AVG, COUNT,<br/>distributions)"]
-    E --> F["Anonymized<br/>Summary Statistics"]
-    F --> G["Render Admin<br/>Analytics Template"]
-    G --> H["Chart.js Renders<br/>Aggregated Charts"]
+    E --> F["Anonymized<br/>Summary Statistics JSON"]
+    F --> G["Return JSON Response"]
+    G --> H["React Admin Dashboard<br/>Renders Visual Analytics"]
 ```
 
 **Key difference:** Student analytics queries include `WHERE user_id = :current_user`. Admin analytics queries use aggregate functions (`AVG`, `COUNT`, `GROUP BY date`) **without** including `user_id` in the `SELECT` or output — ensuring anonymity.
@@ -703,13 +721,13 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    A["🔧 Admin"] --> B["Content Management UI"]
-    B -->|"Add/Edit/Delete Tip"| C["POST /admin/tips/*"]
-    B -->|"Add/Edit/Retire Challenge"| D["POST /admin/challenges/*"]
+    A["🔧 Admin"] --> B["Content Management UI<br/>(React Admin)"]
+    B -->|"Add/Edit/Delete Tip"| C["POST/PUT/DELETE<br/>/api/admin/tips/*"]
+    B -->|"Add/Edit/Delete Challenge"| D["POST/PUT/DELETE<br/>/api/admin/challenges/*"]
     C --> E["Validate Input"]
     D --> E
     E --> F["Update Database<br/>(WellnessTips / Challenges)"]
-    F --> G["Redirect with<br/>Success Message"]
+    F --> G["Return JSON Status<br/>(Success / Error)"]
 ```
 
 ---
@@ -723,6 +741,7 @@ erDiagram
     Users ||--o{ WellnessRecords : "logs daily"
     Users ||--o{ ChallengeProgress : "participates in"
     Users ||--o{ UserAchievements : "earns"
+    Users ||--o{ BMIHistory : "tracks"
     Challenges ||--o{ ChallengeProgress : "tracked by"
     Achievements ||--o{ UserAchievements : "awarded as"
 
@@ -732,9 +751,28 @@ erDiagram
         varchar email UK
         varchar password_hash
         enum role "student | admin"
-        boolean is_active
         int total_points
+        float height "nullable"
+        float weight "nullable"
+        varchar gender "nullable"
+        float bmi "nullable"
+        varchar bmi_category "nullable"
+        varchar ml_health_status "nullable"
+        varchar ml_lifestyle_risk "nullable"
+        boolean is_active
         datetime created_at
+    }
+
+    BMIHistory {
+        int id PK
+        int user_id FK
+        datetime recorded_at
+        float height
+        float weight
+        float bmi
+        varchar bmi_category
+        varchar ml_health_status "nullable"
+        varchar ml_lifestyle_risk "nullable"
     }
 
     WellnessRecords {
@@ -805,6 +843,7 @@ erDiagram
 | Relationship | Type | Description |
 |--------------|------|-------------|
 | Users → WellnessRecords | One-to-Many | Each student has multiple daily wellness records. |
+| Users → BMIHistory | One-to-Many | Longitudinal BMI calculations and ML classifications recorded per student. |
 | Users → ChallengeProgress | One-to-Many | Each student can participate in multiple challenges. |
 | Users → UserAchievements | One-to-Many | Each student can earn multiple achievements. |
 | Challenges → ChallengeProgress | One-to-Many | Each challenge can be attempted by multiple students. |
@@ -861,7 +900,7 @@ Student analytics are scoped exclusively to the authenticated student's own data
 flowchart LR
     A[("WellnessRecords<br/>WHERE user_id = X")] --> B["Pandas<br/>Aggregation"]
     B --> C["Weekly/Monthly<br/>Averages & Trends"]
-    C --> D["Chart.js<br/>Rendering"]
+    C --> D["React Visual Analytics<br/>& Metric Cards"]
 
     B --> E["Pattern<br/>Detection"]
     E --> F["Simple Textual<br/>Insights"]
@@ -1145,7 +1184,7 @@ The architecture follows the **principle of least privilege** — every user, mo
 
 | Safeguard | Implementation |
 |-----------|----------------|
-| **Hashing algorithm** | Werkzeug `generate_password_hash()` using bcrypt |
+| **Hashing algorithm** | Werkzeug `generate_password_hash()` using scrypt (`scrypt:32768:8:1`) |
 | **Plaintext storage** | Never stored, never logged, never transmitted back to the client |
 | **Password complexity** | Minimum length and basic complexity rules enforced during registration |
 | **Comparison** | `check_password_hash()` performs constant-time comparison to prevent timing attacks |
@@ -1171,7 +1210,7 @@ flowchart TD
 | Threat | Mitigation |
 |--------|------------|
 | **SQL Injection** | All database queries use parameterized statements (`%s` placeholders with PyMySQL). Raw string concatenation in queries is prohibited. |
-| **Cross-Site Scripting (XSS)** | Jinja2 auto-escapes template variables by default. User-generated content is rendered through `{{ variable }}` which escapes HTML entities. |
+| **Cross-Site Scripting (XSS)** | React JSX automatically encodes/escapes data before rendering in the DOM, preventing script injection. Backend returns pure JSON (`jsonify`), not dynamically evaluated HTML strings. |
 | **Invalid Data** | All form inputs are validated server-side for data type, range, and format before database writes. Client-side validation supplements but does not replace server-side checks. |
 | **Mass Assignment** | Only explicitly expected form fields are extracted from request data. Unexpected fields are ignored. |
 
@@ -1196,113 +1235,115 @@ flowchart TD
 
 ## 14. API / Backend Communication
 
-The Student Wellness Companion uses **server-side rendering** via Flask and Jinja2. Pages are composed on the server and delivered as complete HTML to the browser. This means the application does not expose a formal REST API in its initial version.
-
-However, communication between the browser and Flask follows RESTful conventions:
+The Student Wellness Companion uses a **decoupled Single-Page Application (SPA) architecture**. The presentation layer is built with React 18 (bundled via Vite), and all client-server communication occurs via a RESTful JSON API exposed by Flask at `/api/*`.
 
 ### 14.1 Route Groups
 
 | Route Group | Base Path | Purpose | Access |
 |-------------|-----------|---------|--------|
-| **Auth** | `/auth/*` | Registration, login, logout | Public (login/register); Authenticated (logout) |
-| **Dashboard** | `/dashboard` | Student dashboard | Student |
-| **Wellness** | `/wellness/*` | Log and view wellness data | Student |
-| **Tips** | `/tips/*` | Browse wellness tips | Student |
-| **Challenges** | `/challenges/*` | View and participate in challenges | Student |
-| **Progress** | `/progress/*` | View charts and analytics | Student |
-| **Profile** | `/profile/*` | View and update profile | Student |
-| **Admin** | `/admin/*` | Admin dashboard, user mgmt, content mgmt, analytics | Admin |
+| **Auth** | `/api/auth/*` | Registration, login, logout, current session check | Public (login/register); Authenticated (logout, me) |
+| **Student** | `/api/student/*` | Dashboard data, wellness logging, body metrics/BMI, progress analytics, challenges, tips | Student (`@api_student_required`) |
+| **Chat** | `/api/chat/*` | Conversational wellness guidance via Gemini with real-time dashboard context | Student (`@api_student_required`) |
+| **Admin** | `/api/admin/*` | Campus overview, anonymized student directory, challenge CRUD, tip CRUD | Admin (`@api_admin_required`) |
 
-### 14.2 Key Route Patterns
+### 14.2 Key REST API Endpoints
 
 ```text
 AUTH
-  GET  /auth/login              → Render login page
-  POST /auth/login              → Authenticate user
-  GET  /auth/register           → Render registration page
-  POST /auth/register           → Create new account
-  GET  /auth/logout             → Destroy session, redirect to login
+  POST   /api/auth/register                    → Register new student account
+  POST   /api/auth/login                       → Authenticate credentials & establish session
+  POST   /api/auth/logout                      → Terminate session
+  GET    /api/auth/me                          → Retrieve current session user & role
 
-WELLNESS
-  GET  /wellness                → Render wellness logging form
-  POST /wellness/log            → Submit daily wellness data
-  GET  /wellness/history        → View past wellness records
+STUDENT
+  GET    /api/student/dashboard                → Fetch student's daily stats, streaks, score, active challenges
+  POST   /api/student/log                      → Submit daily wellness metrics (sleep, water, exercise, mood, stress, study)
+  POST   /api/student/body-metrics             → Update height, weight, gender; triggers BMI & ML risk assessment
+  GET    /api/student/progress                 → Fetch 4-section analytics (overview, trends, analysis, areas to improve)
+  GET    /api/student/challenges               → List active and completed student challenges
+  POST   /api/student/challenges/<id>/join     → Join an active challenge
+  POST   /api/student/challenges/<id>/complete → Complete an active challenge and award points
+  GET    /api/student/tips                     → Retrieve curated wellness tips
 
-TIPS
-  GET  /tips                    → Browse wellness tips (with category filter)
-
-CHALLENGES
-  GET  /challenges              → View active challenges
-  POST /challenges/join/<id>    → Join a challenge
-  POST /challenges/complete/<id>→ Mark a challenge as completed
-
-PROGRESS
-  GET  /progress                → View analytics charts
+CHAT
+  POST   /api/chat/message                     → Send message to Gemini wellness chatbot (with crisis checks & context injection)
 
 ADMIN
-  GET  /admin/dashboard         → Admin overview
-  GET  /admin/users             → User management list
-  POST /admin/users/toggle/<id> → Activate/deactivate account
-  GET  /admin/tips              → Manage tips
-  POST /admin/tips/create       → Add new tip
-  POST /admin/tips/edit/<id>    → Update tip
-  POST /admin/tips/delete/<id>  → Delete tip
-  GET  /admin/challenges        → Manage challenges
-  POST /admin/challenges/create → Create challenge
-  POST /admin/challenges/edit/<id> → Update challenge
-  POST /admin/challenges/retire/<id> → Retire challenge
-  GET  /admin/analytics         → Aggregated analytics dashboard
+  GET    /api/admin/overview                   → Retrieve institutional aggregate metrics and trends
+  GET    /api/admin/students                   → List all registered student accounts (status, registration date, points)
+  POST   /api/admin/students/<id>/toggle-status→ Activate or deactivate a student account
+  GET    /api/admin/challenges                 → List all challenges for admin management
+  POST   /api/admin/challenges                 → Create a new challenge
+  PUT    /api/admin/challenges/<id>            → Update challenge details
+  DELETE /api/admin/challenges/<id>            → Delete a challenge
+  GET    /api/admin/tips                       → List all tips for admin management
+  POST   /api/admin/tips                       → Create a new wellness tip
+  PUT    /api/admin/tips/<id>                  → Update tip content
+  DELETE /api/admin/tips/<id>                  → Delete a wellness tip
 ```
 
 ### 14.3 Chart Data Delivery
 
-Chart.js receives data through Jinja2 template rendering. The Flask backend prepares chart data as Python dictionaries/lists, which are serialized into JavaScript variables within the template:
+Interactive charts and visual metrics in the React application consume JSON payloads fetched asynchronously from Flask REST endpoints:
 
 ```text
-Flask Route
-  → Fetches data from MySQL
-  → Processes with Pandas (if needed)
-  → Passes chart_data dict to template
-  → Jinja2 renders: var chartData = {{ chart_data | tojson }};
-  → Chart.js consumes chartData to render charts
+React Component (e.g., ProgressPage)
+  → Dispatches authenticated GET /api/student/progress request
+  → Flask route authenticates user via session cookie
+  → Service queries MySQL database for historical records
+  → Pandas aggregates trends, averages, and completion rates
+  → Flask returns structured JSON response
+  → React parses JSON and renders custom SVG/CSS visualizations, metric cards, and insights
 ```
-
-**Architectural Assumption:** If future versions require a more dynamic, single-page-application (SPA) experience, these route handlers can be refactored into RESTful JSON API endpoints with minimal changes to the underlying business logic.
 
 ---
 
 ## 15. External Dependencies
 
-The following external libraries and tools are required. No cloud services, payment gateways, third-party APIs, AI APIs, or external authentication providers are used.
+The following external libraries and tools are utilized in the application:
 
 ### 15.1 Frontend Dependencies
 
 | Library | Version | Purpose | Source |
 |---------|---------|---------|--------|
-| **Bootstrap** | 5.x | Responsive grid, UI components, mobile-first layout | CDN or local |
-| **Chart.js** | 4.x | Interactive data visualization (line, bar, pie, donut) | CDN or local |
+| **React** | 18.x | Declarative component-based UI framework | npm (`react`, `react-dom`) |
+| **Vite** | 5.x | High-performance frontend build tool and dev server | npm (`vite`, `@vitejs/plugin-react`) |
+| **React Router** | 6.x | Client-side routing and protected route guards | npm (`react-router-dom`) |
+| **Lucide React** | ^1.x / ^0.x | Modern, lightweight UI iconography | npm (`lucide-react`) |
+| **Custom Design System** | N/A | Vanilla CSS with design tokens, responsive cards, glassmorphic accents, and SVG charting | Internal (`frontend/src/index.css`) |
 
 ### 15.2 Backend Dependencies
 
 | Library | Version | Purpose | Installation |
 |---------|---------|---------|-------------|
-| **Flask** | 3.x | Web framework (routing, templates, sessions) | `pip install flask` |
-| **Jinja2** | 3.x | Server-side HTML templating (bundled with Flask) | Included with Flask |
-| **Werkzeug** | 3.x | Password hashing (`generate_password_hash`, `check_password_hash`), HTTP utilities | Included with Flask |
-| **PyMySQL** | 1.x | MySQL database connector for Python | `pip install pymysql` |
-| **Pandas** | 2.x | Data aggregation, transformation, analytics processing | `pip install pandas` |
+| **Flask** | 3.x | Lightweight WSGI web framework and REST API host | `pip install flask` |
+| **Flask-CORS** | 4.x | Cross-Origin Resource Sharing support for frontend dev server | `pip install flask-cors` |
+| **Werkzeug** | 3.x | Secure password hashing (`scrypt:32768:8:1`), request utilities | Included with Flask |
+| **PyMySQL** | 1.x | Pure-Python MySQL database client | `pip install pymysql` |
+| **Pandas** | 2.x | Data aggregation, trend analysis, and analytics processing | `pip install pandas` |
+| **scikit-learn** | 1.x | Machine learning pipeline for Random Forest BMI & lifestyle classifiers | `pip install scikit-learn` |
+| **joblib** | 1.x | Efficient deserialization of pre-trained ML model artifacts | `pip install joblib` |
+| **google-genai** | 0.x / 1.x | Official Google GenAI SDK for Gemini AI chat (`gemini-2.5-flash`/`gemini-3.5-flash`) | `pip install google-genai` |
+| **python-dotenv** | 1.x | Loads environment variables (`.env`) for secrets and configs | `pip install python-dotenv` |
 
-### 15.3 Database
+### 15.3 Machine Learning Artifacts
+
+| Model File | Location | Trained Task | Classes |
+|------------|----------|--------------|---------|
+| `model_bmi_rf.joblib` | `app/ml_artifacts/` | Random Forest BMI classification (500 Person dataset) | Extremely Weak, Weak, Normal, Overweight, Obesity, Extreme Obesity |
+| `model_lifestyle_rf.joblib` | `app/ml_artifacts/` | Multi-Factor Lifestyle & Obesity Risk classifier | 7 lifestyle risk assessment classes |
+
+### 15.4 Database
 
 | Technology | Version | Purpose |
 |------------|---------|---------|
 | **MySQL** | 8.x | Relational database for persistent storage |
 
-### 15.4 Development Tools (Recommended)
+### 15.5 Development Tools
 
 | Tool | Purpose |
 |------|---------|
-| **python-dotenv** | Load environment variables from `.env` file (database credentials, secret key) |
+| **python-dotenv** | Load environment variables from `.env` file (database credentials, secret key, GEMINI_API_KEY) |
 | **Git** | Version control |
 
 ---
@@ -1425,20 +1466,20 @@ The current architecture is designed for a small to moderate number of users (cl
 
 | Decision | Choice | Reason |
 |----------|--------|--------|
-| **Architecture** | Three-layer (Layered) | Clear separation of concerns; easy to understand, implement, and maintain for a BCA-level project |
-| **Backend Framework** | Flask (Python) | Lightweight, minimal boilerplate, excellent for learning web development fundamentals without framework overhead |
-| **Database** | MySQL | Industry-standard relational database; strong support for structured wellness data with foreign key relationships |
-| **Database Connector** | PyMySQL | Pure Python MySQL connector; straightforward integration with Flask without ORM complexity |
-| **Frontend Framework** | HTML5 / CSS3 / Bootstrap 5 | Accessible, well-documented, responsive; no complex build toolchain required |
-| **Charting Library** | Chart.js | Simple API, rich chart types, lightweight, works directly with JSON data |
-| **Data Processing** | Pandas | Simplifies aggregation and trend computation; avoids complex SQL or manual Python loops |
-| **Templating** | Jinja2 (server-side) | Bundled with Flask; enables clean separation of presentation and logic |
-| **Password Hashing** | Werkzeug/bcrypt | Industry-standard, included with Flask; constant-time comparison prevents timing attacks |
-| **Session Management** | Flask server-side sessions | Simple, secure, no external dependencies; suitable for project scale |
-| **Rendering Model** | Server-side rendering | Simpler architecture; no need for SPA framework; reduces frontend complexity |
-| **Wellness Records** | Consolidated single table | Reduces join complexity; appropriate for a fixed set of known metrics |
-| **Gamification Model** | Personal only (no leaderboards) | Avoids competitive pressure; aligns with the project's wellness-focused philosophy |
-| **Admin Data Access** | Aggregated/anonymized only | Protects student privacy; aligns with the principle of least privilege |
+| **Architecture** | Decoupled Client-Server (SPA + REST API) | Clean separation of frontend UI state and backend business logic; enables responsive, app-like interactions |
+| **Backend Framework** | Flask (Python) | Lightweight, minimal boilerplate, clean REST endpoint organization via Blueprints |
+| **Database** | MySQL 8.x | Industry-standard relational database with relational integrity and foreign keys |
+| **Database Connector** | PyMySQL | Direct parameterized SQL execution without heavyweight ORM overhead |
+| **Frontend Framework** | React 18 (Vite) | Component reusability, virtual DOM efficiency, modular state management, modern developer experience |
+| **Data Visualization** | Interactive SVG / Custom CSS Charts | Lightweight, zero-runtime overhead, high performance, fully themeable without external canvas bloat |
+| **Data Processing** | Pandas | Simplifies aggregation, moving averages, and trend analytics |
+| **Password Hashing** | Werkzeug `scrypt` (`scrypt:32768:8:1`) | High memory-hardness and resistance to GPU/ASIC brute-force attacks |
+| **AI Integration** | Google GenAI SDK (`gemini-2.5-flash`) | Context-aware student wellness companion with emergency crisis word interception and local fallback |
+| **ML Inference** | Pre-trained Random Forest (`joblib` / `scikit-learn`) | Fast, deterministic tabular evaluation for physical health status and lifestyle risk |
+| **Session Management** | Flask server-side sessions | Secure HTTP-only cookie-based authentication maintaining role access |
+| **Wellness Records** | Consolidated single table | Minimizes join overhead; fixed set of daily holistic health metrics |
+| **Gamification Model** | Personal only (no public leaderboards) | Prevents peer pressure while encouraging self-reflection and healthy habits |
+| **Admin Data Access** | Aggregated/anonymized only | Guarantees student privacy; enforces principle of least privilege |
 
 ---
 
@@ -1462,7 +1503,7 @@ The following assumptions are made where the Project Vision does not provide exp
 | 12 | A minimum of two wellness components must be logged for a wellness score to be calculated. | **Architectural Assumption** — prevents misleading scores from single-category entries. |
 | 13 | The `SECRET_KEY` and database credentials are managed via environment variables in production. | **Architectural Assumption** — standard security practice for Flask applications. |
 | 14 | The application uses PyMySQL with parameterized queries, not an ORM. | Aligns with the learning objectives of a BCA-level project; provides direct SQL experience. |
-| 15 | Chart data is passed to templates via Jinja2 (server-rendered) rather than fetched via AJAX API calls. | **Architectural Assumption** — simpler architecture; appropriate for the current rendering model. |
+| 15 | Chart and analytics data is fetched asynchronously via REST API JSON endpoints by React components. | Modern decoupled SPA architecture providing interactive, responsive client-side UI. |
 
 ---
 
@@ -1478,7 +1519,6 @@ The following constraints are realistic limitations that shape the architecture:
 | **Limited initial user base** (class or department scale) | Insufficient data for statistically significant analytics | Focus on personal analytics; acknowledge the limitation in admin analytics |
 | **No wearable integration** in the first version | Students must manually enter all data, increasing friction | Design intuitive, minimal-effort forms; use gamification to encourage logging |
 | **No professional medical integration** | The system cannot provide clinical value | Include clear disclaimers; avoid medical language |
-| **Limited analytics complexity** | Cannot perform advanced ML, correlation analysis, or predictive modeling | Use simple averages, trends, and conditional observations |
 | **Single-server deployment** | No horizontal scaling, no high availability | Acceptable for academic demonstration; document scaling path |
 | **No real-time notifications** | Students must proactively visit the application | List push notifications as a future enhancement |
 | **Browser dependency** | Requires a modern browser and internet connection | Use widely supported web standards; test on major browsers |
@@ -1487,18 +1527,18 @@ The following constraints are realistic limitations that shape the architecture:
 
 ## 21. Future Architecture Evolution
 
-The following enhancements represent realistic evolution paths for the Student Wellness Companion. They are **not** part of the current implementation but are architecturally feasible given the modular, layered foundation.
+The following enhancements represent realistic evolution paths for the Student Wellness Companion beyond the current implementation:
 
 ### 21.1 Mobile Application
 
 ```text
-Current:    Browser → Flask (Server-Rendered HTML)
-Future:     Mobile App → REST API → Flask Backend → MySQL
+Current:    React SPA → Flask REST API → MySQL
+Future:     Native / Hybrid Mobile App → Flask REST API → MySQL
 ```
 
-- Refactor Flask routes into RESTful JSON API endpoints.
-- Build a native (Android/iOS) or hybrid (React Native, Flutter) mobile application.
-- The Application Layer and Data Layer remain unchanged; only the Presentation Layer is replaced.
+- The existing Flask RESTful API (`/api/*`) already provides a mobile-ready interface.
+- Build a native (Android/iOS) or hybrid (React Native, Flutter) mobile application consuming the existing endpoints.
+- Authentication, scoring, gamification, and ML services require zero backend modifications.
 
 ### 21.2 Progressive Web App (PWA)
 
@@ -1517,82 +1557,64 @@ Future:     Mobile App → REST API → Flask Backend → MySQL
 - Hydration reminders, sleep goal alerts, streak warnings, challenge deadlines.
 - Requires adding a notification preferences module and a message queue.
 
-### 21.5 AI-Based Wellness Chatbot
-
-- Integrate a conversational AI module for wellness check-ins and guidance.
-- Would operate within the Application Layer, consuming wellness data and providing personalized (non-clinical) suggestions.
-- Requires integration with an AI/NLP service.
-
-### 21.6 Advanced Analytics
-
-- Implement correlation analysis (e.g., sleep vs. stress, exercise vs. mood).
-- Introduce predictive trend models using scikit-learn.
-- Add comparative analytics for students (opt-in, anonymized peer comparisons).
-
-### 21.7 University-Wide Deployment
+### 21.5 University-Wide Multi-Tenancy
 
 - Deploy on cloud infrastructure (AWS, GCP, or Azure) with managed databases.
 - Add multi-tenancy support for different departments or campuses.
 - Implement SSO integration with university authentication systems (LDAP, SAML).
 
-### 21.8 Cloud Infrastructure
+### 21.6 Cloud Infrastructure
 
 ```text
-Current:    Single Server → Flask → MySQL
+Current:    Single Server → Flask REST API → MySQL
 Future:     Load Balancer → Multiple Flask Instances → Managed MySQL
-            + CDN for Static Assets
+            + CDN for React Static Assets
             + Redis for Session/Cache
             + Background Workers for Analytics
 ```
 
-### 21.9 Architecture Evolution Diagram
+### 21.7 Architecture Evolution Diagram
 
 ```mermaid
 flowchart LR
     subgraph Current["Current Architecture (v1)"]
-        C1["Server-Rendered<br/>Web App"]
-        C2["Single Flask<br/>Instance"]
-        C3["Single MySQL<br/>Database"]
+        C1["React 18 SPA"]
+        C2["Flask REST API<br/>+ Gemini Chat + ML"]
+        C3["MySQL Database"]
     end
 
     subgraph Near["Near-Term Evolution"]
-        N1["REST API<br/>Endpoints"]
-        N2["PWA Support"]
-        N3["Email<br/>Notifications"]
+        N1["PWA Support"]
+        N2["Push / Email<br/>Notifications"]
+        N3["Wearable Data Sync"]
     end
 
     subgraph Future["Long-Term Evolution"]
-        F1["Mobile Apps"]
-        F2["Wearable<br/>Integration"]
-        F3["AI Chatbot"]
-        F4["Cloud<br/>Deployment"]
-        F5["Advanced<br/>Analytics"]
+        F1["Mobile Apps<br/>(React Native)"]
+        F2["Multi-Tenant Cloud"]
+        F3["University SSO (LDAP)"]
     end
 
     Current --> Near --> Future
 ```
 
-> **Note:** Each evolution step is incremental. The layered architecture ensures that adding a REST API, mobile frontend, or background workers does not require rewriting the core business logic or database layer.
-
 ---
 
 ## 22. Architecture Summary
 
-The Student Wellness Companion is built on a **three-layer architecture** using **Flask**, **MySQL**, **Bootstrap 5**, and **Chart.js** — a practical, well-understood technology stack that is appropriate for a BCA-level academic project.
+The Student Wellness Companion is built on a **decoupled client-server architecture** using **React 18**, **Flask REST API**, **MySQL 8**, and **scikit-learn Random Forest ML models** with **Google Gemini AI guidance** — a modern, robust, and extensible technology stack that is appropriate for a BCA-level academic project.
 
 ### Why This Architecture Works
 
 | Quality | How the Architecture Achieves It |
 |---------|----------------------------------|
-| **Practical** | Uses widely adopted, well-documented technologies with abundant learning resources. No exotic frameworks, no unnecessary abstraction layers, and no enterprise-level infrastructure. A student developer can understand, build, and debug every component. |
-| **Secure** | Implements industry-standard password hashing (bcrypt), server-side sessions with secure cookie flags, role-based access control with route decorators, parameterized SQL queries to prevent injection, Jinja2 auto-escaping to prevent XSS, and strict data ownership for private content. |
-| **Modular** | Each backend module (Authentication, Wellness Tracking, Gamification, Analytics, Content Management, Admin) has clearly defined responsibilities and boundaries. Modules can be modified, extended, or replaced independently. |
-| **Maintainable** | The layered separation (Presentation → Application → Data) ensures that UI changes don't break business logic, and database changes don't force UI rewrites. Code is organized by function, not by file type. |
-| **Scalable** | While designed for a small user base, the architecture supports incremental scaling: database indexing, connection pooling, caching, API refactoring, and eventually horizontal scaling — all without a fundamental architectural overhaul. |
-| **Appropriate** | The architecture respects the project's scope, constraints, and educational objectives. It is complex enough to be a meaningful learning exercise and simple enough to be fully implementable within the project timeline. |
-
-The Student Wellness Companion architecture balances professional design principles with academic practicality. It provides a solid foundation for the current implementation while leaving clear, documented pathways for future evolution.
+| **Practical** | Uses widely adopted, well-documented technologies with abundant learning resources. Cleanly separates the modern React frontend from the Python Flask backend via RESTful JSON contracts. |
+| **Secure** | Implements robust password hashing (Werkzeug scrypt:32768:8:1), server-side sessions with secure cookie flags, role-based access control with route decorators (`@api_student_required`, `@api_admin_required`), parameterized SQL queries to prevent injection, React auto-escaping to prevent XSS, and crisis safety keyword interception in AI interactions. |
+| **Modular** | Each backend module (Auth, Wellness, Gamification, Analytics, Chat, ML Service, Admin) has clearly defined responsibilities and boundaries. Modules can be modified, extended, or replaced independently. |
+| **Maintainable** | The decoupled architecture (React Presentation → Flask REST Application → MySQL Data) ensures that UI changes don't break business logic, and database changes don't force UI rewrites. |
+| **Scalable** | The existing RESTful architecture already enables mobile clients, external integrations, and cloud deployments without redesigning backend endpoints or business logic. |
+| **Appropriate** | The architecture respects the project's scope, constraints, and educational objectives. It provides hands-on experience with modern full-stack development, machine learning tabular inference, and generative AI integration. |
 
 ---
 
-*This architecture document is derived from the [PROJECT_VISION.md](file:///d:/miniproject/Wellvia/PROJECT_VISION.md) and serves as the technical blueprint for the Student Wellness Companion. Detailed implementation-level design, including complete database schemas, wireframes, and module specifications, will be documented in `SYSTEM_DESIGN.md`.*
+*This architecture document is derived from the [PROJECT_VISION.md](file:///d:/miniproject/Wellvia/PROJECT_VISION.md) and serves as the technical blueprint for the Student Wellness Companion. Detailed implementation-level design, including complete database schemas, wireframes, and module specifications, is documented in `SYSTEM_DESIGN.md`.*

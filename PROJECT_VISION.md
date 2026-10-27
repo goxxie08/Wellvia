@@ -20,7 +20,7 @@ Students can log their daily activities, participate in wellness challenges, ear
 
 On the administrative side, campus wellness coordinators can manage wellness content, create challenges, and access aggregated analytics to understand general wellness trends across the student body — all without compromising individual student privacy.
 
-The application is built using a practical technology stack (Flask, MySQL, Bootstrap, Chart.js) that is well-suited for a BCA-level academic project while remaining extensible for future enhancements.
+The application is built using a modern, decoupled technology stack (React 18 SPA, Flask REST API, MySQL, Scikit-Learn ML, and Google Gemini AI) that is well-suited for a BCA-level academic project while remaining extensible for future enhancements.
 
 ---
 
@@ -212,7 +212,7 @@ The authentication module handles user identity and session management:
 - **Student Registration** — New students can create an account with a username, email, and password. Passwords are hashed before storage; plaintext passwords are never stored.
 - **Login** — Registered students authenticate using their credentials. On successful login, a server-side session is created.
 - **Logout** — Students can securely end their session at any time.
-- **Password Security** — Passwords are hashed using a standard algorithm (e.g., bcrypt via Werkzeug). Minimum password length and basic complexity rules are enforced during registration.
+- **Password Security** — Passwords are hashed using a standard, memory-hard algorithm (Werkzeug `scrypt:32768:8:1`). Minimum password length and basic complexity rules are enforced during registration.
 - **Profile Management** — Students can view and update basic profile information such as display name and email address.
 
 #### Personalized Dashboard
@@ -403,7 +403,7 @@ pie title Wellness Score Composition
 
 ### Student Analytics
 
-The student dashboard provides interactive visual representations of personal data. Charts are rendered using Chart.js and include:
+The student progress and dashboard pages provide interactive visual representations of personal data. Charts are rendered using dynamic React SVG and CSS components, structured into 4 comprehensive sections (Wellness Overview, Daily Wellness Charts, Your Wellness Analysis, and Areas to Improve):
 
 - **Weekly Sleep Chart** — Bar chart showing sleep duration for each day of the week
 - **Hydration Progress Chart** — Daily water intake with a target line
@@ -484,7 +484,7 @@ Wellness data is inherently personal and sensitive. The Student Wellness Compani
 
 ### Authentication and Authorization
 
-- **Password Hashing** — All passwords are hashed using a proven algorithm (e.g., bcrypt) before storage. Plaintext passwords are never stored or logged.
+- **Password Hashing** — All passwords are hashed using a proven, memory-hard algorithm (Werkzeug `scrypt:32768:8:1`) before storage. Plaintext passwords are never stored or logged.
 - **Role-Based Access Control (RBAC)** — The system enforces two distinct roles: Student and Administrator. Each role has clearly defined permissions. Students cannot access administrative functions; administrators cannot access individual student wellness records.
 - **Session Security** — User sessions are managed server-side using Flask's session management with secure cookie flags (HttpOnly, Secure where applicable). Sessions expire after a configurable period of inactivity.
 
@@ -573,7 +573,7 @@ The application must render correctly and remain fully functional on:
 - Tablets (768×1024, both orientations)
 - Mobile browsers (360×640 and similar)
 
-Bootstrap's responsive grid system will be used to ensure consistent behavior across screen sizes.
+A custom CSS responsive grid system and modern design tokens ensure consistent behavior across screen sizes.
 
 ---
 
@@ -602,110 +602,136 @@ Bootstrap's responsive grid system will be used to ensure consistent behavior ac
 
 ### Frontend
 
-| Technology  | Purpose                                                        |
-| ----------- | -------------------------------------------------------------- |
-| HTML5       | Page structure and semantic markup                             |
-| CSS3        | Styling, layout, and responsive design                         |
-| JavaScript  | Client-side interactivity, form validation, and chart handling |
-| Bootstrap 5 | Responsive grid system, UI components, and mobile-first design |
-| Chart.js    | Interactive data visualization (line, bar, pie, donut charts)  |
+| Technology | Purpose |
+| ---------- | -------------------------------------------------------------- |
+| React 18 | Modern component-based Single-Page Application (SPA) architecture |
+| Vite | Next-generation frontend build tooling and hot-module dev server |
+| React Router DOM | Client-side declarative routing and protected route management |
+| Lucide React | Lightweight, accessible UI icon system |
+| Custom CSS | Tailored modern design system with CSS variables, responsive cards, and glassmorphic UI |
+| Dynamic SVG Charts | Native, lightweight client-side data visualizations without external canvas bloat |
 
 ### Backend
 
-| Technology | Purpose                                                         |
+| Technology | Purpose |
 | ---------- | --------------------------------------------------------------- |
-| Python 3   | Server-side programming language                                |
-| Flask      | Lightweight web framework for routing, templates, and sessions  |
-| Jinja2     | Server-side HTML templating (integrated with Flask)             |
-| Werkzeug   | Password hashing and HTTP utility functions (bundled with Flask) |
+| Python 3 | Server-side programming language |
+| Flask | Lightweight web framework hosting the REST API endpoints (`/api/*`) |
+| Flask-CORS | Cross-Origin Resource Sharing handling for decoupled frontend |
+| Werkzeug | Memory-hard password hashing (`scrypt:32768:8:1`) and request security |
+| PyMySQL | MySQL database connector for parameterized query execution |
 
-Flask is chosen over Django because the project scope is well-suited to a lightweight framework. Flask provides sufficient structure for routing, templating, and session management without the overhead of Django's built-in admin, ORM, and authentication system — all of which would be implemented manually as learning exercises in this project.
+Flask provides a clean, lightweight foundation for routing, session cookies, and API contracts without the unnecessary complexity of full-stack monolithic frameworks.
+
+### Machine Learning & Data Processing
+
+| Technology | Purpose |
+| ---------- | ------------------------------------------------------------- |
+| Pandas | Data aggregation, moving averages, trend detection, and summary statistics |
+| Scikit-Learn | Inference pipeline for pre-trained Random Forest BMI and lifestyle-risk classifiers |
+| Joblib | Efficient deserialization of pre-trained model artifacts (`model_bmi_rf.joblib`, `model_lifestyle_rf.joblib`) |
+
+### Generative AI & Safety Integration
+
+| Technology | Purpose |
+| ---------- | ------------------------------------------------------------- |
+| Google GenAI SDK | Powers conversational wellness guidance (`gemini-2.5-flash` / `gemini-3.5-flash`) |
+| Safety Interceptor | Real-time crisis keyword detection returning immediate emergency lifelines (988 Lifeline, 741741 Crisis Text Line) |
+| Offline Fallback Engine | Embedded rule-based local assistant ensuring 100% response availability |
 
 ### Database
 
-| Technology | Purpose                                                 |
+| Technology | Purpose |
 | ---------- | ------------------------------------------------------- |
-| MySQL      | Relational database for persistent data storage         |
-| PyMySQL    | Python MySQL connector for database interaction         |
-
-### Data Processing
-
-| Technology | Purpose                                                       |
-| ---------- | ------------------------------------------------------------- |
-| Pandas     | Data aggregation, transformation, and analytics computation   |
-
-Pandas is used on the backend to process wellness records, compute averages, identify trends, and prepare data for chart rendering. It simplifies operations that would otherwise require complex SQL queries or manual Python loops.
+| MySQL 8.x | Relational database for persistent user accounts, wellness metrics, and achievements |
 
 ---
 
 ## High-Level System Architecture
 
-The application follows a standard **three-layer architecture** suitable for a web-based student project:
+The application follows a modern **decoupled client-server architecture**:
 
 ```mermaid
 graph TB
     subgraph Presentation Layer
-        HTML["HTML5 / CSS3 / Bootstrap"]
-        JS["JavaScript / Chart.js"]
+        REACT["React 18 SPA (Vite)"]
+        ROUTER["React Router (Protected Routes)"]
+        UI["Custom CSS & SVG Analytics"]
+        DRAWER["AI Companion Drawer UI"]
     end
 
     subgraph Application Layer
-        FLASK["Flask Web Framework"]
-        ROUTES["Route Handlers"]
-        AUTH["Authentication Module"]
-        BL["Business Logic"]
-        ANALYTICS["Analytics Engine"]
+        FLASK["Flask REST API (/api/*)"]
+        AUTH["Auth Controller & Session Cookies"]
+        STUDENT["Student Controller & Logging"]
+        ADMIN["Admin Controller & Reporting"]
+        CHAT["Chat Service (Gemini + Crisis Guard)"]
+        ML["ML Service (Random Forest)"]
+        SCORE["Wellness Scoring & Gamification"]
     end
 
-    subgraph Data Layer
-        MYSQL["MySQL Database"]
-        PANDAS["Pandas Processing"]
+    subgraph Data & Storage Layer
+        MYSQL[("MySQL 8.x Database")]
+        PANDAS["Pandas Analytics Aggregation"]
+        ARTIFACTS["Pre-Trained ML Models (.joblib)"]
     end
 
-    HTML --> FLASK
-    JS --> FLASK
-    FLASK --> ROUTES
-    ROUTES --> AUTH
-    ROUTES --> BL
-    ROUTES --> ANALYTICS
-    BL --> MYSQL
-    ANALYTICS --> PANDAS
+    REACT --> ROUTER
+    ROUTER --> UI
+    ROUTER --> DRAWER
+    REACT -->|"JSON over HTTP (/api/*)"| FLASK
+
+    FLASK --> AUTH
+    FLASK --> STUDENT
+    FLASK --> ADMIN
+    FLASK --> CHAT
+    FLASK --> ML
+
+    STUDENT --> SCORE
+    ADMIN --> PANDAS
+    CHAT -->|"Infers from context"| STUDENT
+    ML --> ARTIFACTS
+    SCORE --> MYSQL
     PANDAS --> MYSQL
+    AUTH --> MYSQL
 ```
 
 ### Architecture Description
 
-**Presentation Layer** — Responsible for rendering the user interface in the browser. HTML templates (rendered via Jinja2) provide the page structure, CSS and Bootstrap handle styling and responsiveness, and JavaScript with Chart.js manages client-side interactivity and data visualization.
+**Presentation Layer** — Implemented as a client-side Single-Page Application (SPA) using React 18 and Vite. It renders views dynamically, manages local UI state, auto-escapes rendered content to prevent XSS, and visualizes trends using native SVG/CSS bar charts and progress rings.
 
-**Application Layer** — The Flask backend handles HTTP requests, routes them to appropriate handler functions, manages user sessions and authentication, executes business logic (wellness score calculation, streak tracking, badge awarding), and prepares data for template rendering.
+**Application Layer** — The Flask backend operates as a pure REST API (`/api/*`). It validates incoming JSON payloads, authenticates session cookies via custom decorators, executes business logic (scoring formulas, streaks, achievements), and coordinates AI chat guidance and ML model inference.
 
-**Data Layer** — MySQL stores all persistent data including user accounts, wellness records, tips, challenges, and achievements. Pandas is used within the application layer to perform data aggregation and analytics computations before results are sent to the presentation layer.
+**Data Layer** — MySQL 8.x manages all persistent records with referential integrity. Machine learning models (`model_bmi_rf.joblib`, `model_lifestyle_rf.joblib`) are loaded locally for rapid tabular classification, and Pandas performs data transformation and trend analysis.
 
 ### Request Flow
 
 ```mermaid
 sequenceDiagram
-    participant S as Student Browser
-    participant F as Flask Backend
+    participant S as Student React SPA
+    participant F as Flask REST API
+    participant ML as ML / Chat Service
     participant DB as MySQL Database
     participant P as Pandas
 
-    S->>F: HTTP Request (e.g., Log Sleep)
-    F->>F: Validate Input & Check Session
-    F->>DB: Store Wellness Record
+    Note over S,DB: Daily Wellness Logging Flow
+    S->>F: POST /api/student/log (JSON payload)
+    F->>F: Validate Inputs & Verify Session Cookie
+    F->>DB: INSERT / UPDATE wellness_records
     DB-->>F: Confirmation
-    F->>DB: Fetch Today's Records
-    DB-->>F: Records Data
-    F->>F: Calculate Wellness Score
-    F->>S: Render Updated Dashboard
+    F->>F: Compute Weighted Wellness Score (0-100)
+    F->>DB: Update Streaks & Points
+    F-->>S: Return 200 OK JSON (score, points, streak)
+    S->>S: Update Dashboard State & UI
 
-    Note over S,P: Analytics Request Flow
-    S->>F: Request Weekly Charts
-    F->>DB: Fetch Weekly Records
-    DB-->>F: Raw Data
-    F->>P: Process & Aggregate
-    P-->>F: Processed Data
-    F->>S: Render Charts via Chart.js
+    Note over S,P: Progress Analytics Flow
+    S->>F: GET /api/student/progress
+    F->>DB: Fetch User's Historical Records
+    DB-->>F: Raw Records
+    F->>P: Aggregate Moving Averages & Trends
+    P-->>F: Structured Analytics Dict
+    F-->>S: Return 200 OK JSON (4 sections data)
+    S->>S: Render Dynamic SVG / CSS Charts
 ```
 
 ---
@@ -717,6 +743,7 @@ sequenceDiagram
 ```mermaid
 erDiagram
     Users ||--o{ WellnessRecords : "logs"
+    Users ||--o{ BMIHistory : "tracks"
     Users ||--o{ ChallengeProgress : "participates"
     Users ||--o{ UserAchievements : "earns"
     Challenges ||--o{ ChallengeProgress : "tracked by"
@@ -728,8 +755,28 @@ erDiagram
         varchar email
         varchar password_hash
         enum role
-        datetime created_at
+        int total_points
+        float height
+        float weight
+        varchar gender
+        float bmi
+        varchar bmi_category
+        varchar ml_health_status
+        varchar ml_lifestyle_risk
         boolean is_active
+        datetime created_at
+    }
+
+    BMIHistory {
+        int id PK
+        int user_id FK
+        datetime recorded_at
+        float height
+        float weight
+        float bmi
+        varchar bmi_category
+        varchar ml_health_status
+        varchar ml_lifestyle_risk
     }
 
     WellnessRecords {
@@ -799,11 +846,19 @@ erDiagram
 
 #### Users
 
-Stores all user accounts, both students and administrators.
+Stores all user accounts, both students and administrators, along with student physical baseline measurements and ML classification results.
 
-- **Key Fields:** `user_id` (PK), `username`, `email`, `password_hash`, `role` (student/admin), `is_active`, `created_at`
-- **Relationships:** One-to-many with WellnessRecords, ChallengeProgress, UserAchievements
-- **Notes:** The `role` field determines access permissions. The `is_active` flag allows administrators to deactivate accounts without deleting data.
+- **Key Fields:** `user_id` (PK), `username`, `email`, `password_hash`, `role` (student/admin), `total_points`, `height`, `weight`, `gender`, `bmi`, `bmi_category`, `ml_health_status`, `ml_lifestyle_risk`, `is_active`, `created_at`
+- **Relationships:** One-to-many with WellnessRecords, BMIHistory, ChallengeProgress, UserAchievements
+- **Notes:** The `role` field determines access permissions. Passwords are securely hashed with `scrypt:32768:8:1`. Physical metrics are updated via the onboarding modal and feed into ML health status and lifestyle risk classifiers.
+
+#### BMIHistory
+
+Stores longitudinal physical measurements, computed BMI values, and machine learning assessment outcomes over time.
+
+- **Key Fields:** `id` (PK), `user_id` (FK), `recorded_at`, `height`, `weight`, `bmi`, `bmi_category`, `ml_health_status`, `ml_lifestyle_risk`
+- **Relationships:** Many-to-one with Users (ON DELETE CASCADE)
+- **Notes:** Enables retrospective review of physical metric changes and ML predictions across student semesters.
 
 #### WellnessRecords
 
@@ -866,61 +921,52 @@ If future requirements demand more flexible or dynamic tracking categories, the 
 
 ### In Scope
 
-The following features are planned for implementation in the current version of the project:
+The following features are implemented in the current version of the project:
 
-- Student registration, login, logout, and session management
-- Basic profile management
+- Student registration, login, logout, and session management (`scrypt:32768:8:1`)
+- Physical baseline onboarding (height, weight, gender) and longitudinal BMI tracking
 - Daily wellness logging (sleep, hydration, exercise, mood, stress, study hours)
-- Personalized student dashboard
-- Rule-based wellness score calculation
-- Habit streak tracking
-- Points and badge system
+- Personalized student dashboard with real-time score, streaks, and tips
+- Rule-based wellness score calculation (0–100 composite index)
+- Habit streak tracking with daily reset logic
+- Points and badge achievement system
 - Curated wellness tips (admin-managed)
 - Wellness challenges (admin-created, student-participated)
-- Interactive charts for personal wellness trends (Chart.js)
-- Administrator login and role-based access
-- Admin user management (view, activate/deactivate)
-- Admin content management (tips and challenges)
-- Aggregated, anonymized admin analytics
-- Responsive design for desktop and mobile browsers
-- Server-side input validation and password hashing
-- Protection against SQL injection
+- Redesigned 4-section progress analytics with interactive SVG/CSS bar charts
+- Conversational AI wellness guidance powered by Google Gemini with student dashboard context injection
+- Crisis safety guard intercepting distress keywords with 988 and 741741 emergency resources
+- Pre-trained Random Forest ML health status and lifestyle risk assessment
+- Administrator login and role-based access control
+- Admin user management (view roster, activate/deactivate accounts)
+- Admin content management (tips and challenges CRUD)
+- Aggregated, anonymized institutional analytics
+- Responsive decoupled design for desktop, tablet, and mobile browsers
+- Server-side input validation and parameterized SQL query execution
 
 ### Out of Scope
 
 The following are explicitly outside the scope of the current project:
 
-- **Medical diagnosis or clinical assessment** — The system does not diagnose health conditions
-- **Professional psychological counseling** — The system does not provide therapy or counseling services
-- **Emergency mental-health services** — The system does not include crisis intervention features
-- **Automatic medical recommendations** — The system does not prescribe treatments or medications
-- **Wearable device integration** — No integration with smartwatches, fitness bands, or health sensors
-- **AI-based diagnosis or predictive modeling** — No machine learning models for health prediction
-- **Direct clinical intervention** — The system does not connect to healthcare providers
-- **Real-time notifications or push alerts** — Not included in the initial version
-- **Social features** — No friend lists, leaderboards, or social wellness sharing
-- **Third-party API integrations** — No integration with external fitness or health platforms
-- **Offline functionality** — The application requires an active internet connection
+- **Medical diagnosis or clinical treatment** — The system provides self-awareness metrics and non-clinical risk categorization, not medical diagnoses
+- **Professional psychological therapy** — The AI companion offers empathetic wellness guidance but is not a licensed therapist or clinician
+- **Emergency responder dispatch** — While the chatbot immediately intercepts crisis keywords and provides 988 Lifeline and Crisis Text Line contacts, it cannot dispatch emergency medical services
+- **Automatic medical prescriptions** — The system does not prescribe medications or medical treatments
+- **Wearable device integration** — No direct syncing with smartwatches, fitness bands, or hardware sensors
+- **Real-time push notifications** — No background push notifications or SMS alerts
+- **Social leaderboards** — No public comparison tables or competitive rankings
 
 ---
 
 ## Future Enhancements
 
-The following features are identified as potential improvements for future versions of the project. They are not part of the current scope but represent realistic evolution paths:
+The following features represent realistic evolution paths beyond the current implementation:
 
-- **Mobile Application** — Native or hybrid mobile app for Android and iOS
-- **Wearable Device Integration** — Automatic data sync from fitness trackers and smartwatches
-- **Personalized Recommendations** — Tailored wellness suggestions based on individual patterns
-- **AI-Based Conversational Assistant** — A chatbot providing wellness guidance and check-ins
-- **Advanced Analytics** — Correlation analysis, predictive trends, and comparative insights
-- **Notification and Reminder System** — Push notifications for hydration reminders, sleep goals, and challenges
-- **University-Wide Wellness Programs** — Integration with institutional wellness initiatives
-- **Calendar Integration** — Sync with academic calendars to correlate exam schedules with stress data
-- **Personalized Habit Recommendations** — System-generated habit suggestions based on identified gaps
-- **Progressive Web App (PWA)** — Offline support and installable web experience
-- **Multilingual Support** — Interface available in multiple languages
-- **Data Export** — Allow students to export their wellness data in CSV or PDF format
-- **Peer Support Groups** — Optional, moderated peer wellness groups (with strict privacy controls)
+- **Mobile Application** — Native or hybrid mobile app (e.g., React Native) consuming the existing `/api/*` REST endpoints
+- **Wearable Device Integration** — Automatic background syncing with Google Fit and Apple Health
+- **Notification and Reminder System** — Celery/Redis background worker for automated logging and streak alerts
+- **University-Wide SSO** — Campus directory authentication via LDAP or SAML
+- **Academic Calendar Integration** — Correlating exam schedules and deadlines with wellness trends
+- **Data Export** — Enabling students to export personal wellness history in CSV or PDF formats
 
 ---
 
@@ -991,7 +1037,7 @@ The project will be considered successful if the following criteria are met:
 - Design wireframes for the student dashboard
 - Design wireframes for the admin panel
 - Define the visual style guide (colors, typography, spacing)
-- Create responsive layout templates using Bootstrap
+- Create responsive component architecture using modern CSS design tokens
 - Design form layouts for wellness data entry
 
 ### Phase 3 — Database Design and Implementation
@@ -1005,7 +1051,7 @@ The project will be considered successful if the following criteria are met:
 ### Phase 4 — Authentication and Authorization
 
 - Implement student registration with input validation
-- Implement secure login with password hashing (bcrypt)
+- Implement secure login with password hashing (`scrypt:32768:8:1`)
 - Implement session management and logout
 - Implement role-based access control (student vs. admin routes)
 - Create route decorators for protected pages
@@ -1034,7 +1080,7 @@ The project will be considered successful if the following criteria are met:
 
 ### Phase 8 — Analytics and Visualization
 
-- Implement student-facing charts using Chart.js (sleep, hydration, exercise, mood, stress, study, wellness score)
+- Implement student-facing SVG/CSS charts across 4 analytics sections (Wellness Overview, Daily Charts, Wellness Analysis, Areas to Improve)
 - Build the weekly and monthly data aggregation logic using Pandas
 - Generate simple pattern-based observations from student data
 - Implement the admin analytics dashboard with aggregated statistics
@@ -1109,7 +1155,7 @@ The following assumptions underpin the project plan and design:
 5. Students will voluntarily enter their own wellness data; the system does not automate data collection.
 6. Administrator accounts will be pre-created by the system administrator (not self-registered).
 7. The project timeline allows approximately 10–14 weeks for development, testing, and deployment.
-8. Third-party libraries (Flask, Bootstrap, Chart.js, Pandas, PyMySQL) will remain available and compatible during development.
+8. Third-party libraries (React, Vite, Flask, PyMySQL, Pandas, Scikit-Learn, Google GenAI SDK) will remain available and compatible during development.
 9. The system will be used by a small to moderate number of concurrent users (class or department scale), not university-wide scale.
 10. All wellness data is self-reported, and the system does not verify the accuracy of user inputs.
 

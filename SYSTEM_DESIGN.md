@@ -95,62 +95,70 @@ The system is organized into distinct, focused modules.
 
 ```text
 Student
-→ Submits Registration Form (Username, Email, Password)
-→ Flask Route: Input Validation (Length, format)
+→ Submits Registration Form in React UI (Username, Email, Password)
+→ API Request: POST /api/auth/register (application/json)
+→ Flask Route: Input Validation (Length, format, password complexity)
 → Flask Route: Check Existing User (Is email/username taken?)
-→ Utility: Password Hashing (bcrypt)
-→ Database: Insert into Users (role='student')
-→ Flask Route: Flash Success Message
-→ Redirect to Login Page
+→ Utility: Password Hashing (Werkzeug scrypt:32768:8:1)
+→ Database: Insert into users (role='student', total_points=0, is_active=1)
+→ Flask Route: Return 201 Created JSON
+→ React UI: Displays success notification, transitions to login
 ```
 
 ### Student Login
 
 ```text
 Student
-→ Submits Login Form
+→ Submits Login Form in React UI
+→ API Request: POST /api/auth/login (application/json)
 → Flask Route: Validate Credentials (Email exists?)
-→ Utility: Verify Password (check_password_hash)
-→ Flask Route: Create Session (Store user_id, role)
-→ Flask Route: Check Role
-→ Redirect to /dashboard
+→ Utility: Verify Password (check_password_hash with scrypt)
+→ Flask Route: Create Session (Store user_id, role in signed cookie)
+→ Flask Route: Return 200 OK JSON with user profile
+→ React UI: Updates AuthContext state and navigates to /dashboard
 ```
 
 ### Daily Wellness Entry
 
 ```text
 Student
-→ Submits Wellness Data Form
-→ Flask Route: Validate Input (Ranges, types)
-→ Service: Check if record exists for today
-→ Database: Insert or Update WellnessRecords
-→ Service: Calculate/Update Wellness Score
-→ Gamification Service: Update Streak, Award Points
+→ Submits Wellness Data via React Modal / Form
+→ API Request: POST /api/student/log (application/json)
+→ Flask Route: Validate Input (@api_student_required, ranges, numeric checks)
+→ Service: Check if record exists for today (uk_user_record_date)
+→ Database: Insert or Update wellness_records
+→ Service: Calculate/Update Wellness Score (0-100)
+→ Gamification Service: Update Streaks, Award Points
 → Gamification Service: Check Achievements (Award badge if eligible)
-→ Redirect to /dashboard with success message
+→ Flask Route: Return 200 OK JSON with updated wellness score & points
+→ React UI: Refreshes Dashboard stats & active streak
 ```
 
 ### Challenge Completion
 
 ```text
 Student
-→ Clicks "Complete" on active challenge
-→ Service: Validate Challenge is active and not already completed today
-→ Database: Update ChallengeProgress (is_completed = True)
-→ Gamification Service: Award Points defined by Challenge
-→ Gamification Service: Check "Challenge Conqueror" badge eligibility
-→ Redirect to /challenges
+→ Clicks "Complete" on active challenge card
+→ API Request: POST /api/student/challenges/<id>/complete
+→ Service: Validate challenge exists and belongs to user
+→ Database: Update challenge_progress (completion_date = CURRENT_DATE, is_completed = 1)
+→ Gamification Service: Award points configured for the challenge
+→ Gamification Service: Check achievement eligibility
+→ Flask Route: Return 200 OK JSON with earned points
+→ React UI: Updates points and marks challenge as completed
 ```
 
 ### Admin Content Management (Tips)
 
 ```text
 Admin
-→ Submits New Tip Form
-→ Flask Route: Verify session role == 'admin'
-→ Flask Route: Validate input
-→ Database: Insert into WellnessTips
-→ Redirect to /admin/tips
+→ Submits New Tip via Admin React Modal
+→ API Request: POST /api/admin/tips (application/json)
+→ Flask Route: Verify session role == 'admin' (@api_admin_required)
+→ Flask Route: Validate input (category, content)
+→ Database: Insert into wellness_tips (category, content, is_active=1)
+→ Flask Route: Return 201 Created JSON
+→ React UI: Updates tips directory and displays confirmation
 ```
 
 ---
@@ -160,17 +168,38 @@ Admin
 The database uses MySQL. The schema is normalized appropriately for the project scope, utilizing a consolidated `wellness_records` table to simplify daily tracking.
 
 ### Users Table
-*Purpose:* Stores authentication and profile data for all users.
+*Purpose:* Stores authentication, role, physical profile, and ML assessment attributes.
 | Column | Type | Key | Null | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | `id` | INT | PK | No | Auto-incrementing ID |
 | `username` | VARCHAR(50) | UNI | No | Unique username |
 | `email` | VARCHAR(120) | UNI | No | Unique email address |
-| `password_hash` | VARCHAR(255) | | No | bcrypt hashed password |
-| `role` | ENUM | | No | 'student' or 'admin' |
+| `password_hash` | VARCHAR(255) | | No | Werkzeug `scrypt:32768:8:1` hashed password |
+| `role` | ENUM | | No | 'student' or 'admin' (default 'student') |
 | `total_points` | INT | | No | Default 0 |
+| `height` | FLOAT | | Yes | Height in cm |
+| `weight` | FLOAT | | Yes | Weight in kg |
+| `gender` | VARCHAR(20) | | Yes | Gender ('Female', 'Male', etc.) |
+| `bmi` | FLOAT | | Yes | Calculated Body Mass Index |
+| `bmi_category` | VARCHAR(50) | | Yes | Standard BMI category |
+| `ml_health_status`| VARCHAR(50) | | Yes | Random Forest predicted health status |
+| `ml_lifestyle_risk`| VARCHAR(50) | | Yes | Random Forest predicted lifestyle risk |
 | `is_active` | BOOLEAN | | No | Default True (for soft deletes) |
 | `created_at` | DATETIME | | No | Account creation timestamp |
+
+### BMIHistory Table
+*Purpose:* Longitudinal history of physical measurements, BMI calculations, and ML assessment results.
+| Column | Type | Key | Null | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | INT | PK | No | Auto-incrementing ID |
+| `user_id` | INT | FK | No | Refers to Users.id (ON DELETE CASCADE) |
+| `recorded_at` | DATETIME | | No | Timestamp of measurement entry |
+| `height` | FLOAT | | No | Height in cm |
+| `weight` | FLOAT | | No | Weight in kg |
+| `bmi` | FLOAT | | No | Body Mass Index |
+| `bmi_category` | VARCHAR(50) | | No | Standard BMI category |
+| `ml_health_status`| VARCHAR(50) | | Yes | Random Forest predicted health status |
+| `ml_lifestyle_risk`| VARCHAR(50) | | Yes | Random Forest predicted lifestyle risk |
 
 ### WellnessRecords Table
 *Purpose:* Consolidated daily metrics per user.
@@ -215,13 +244,15 @@ The database uses MySQL. The schema is normalized appropriately for the project 
 | `is_active` | BOOLEAN | | No | Default True |
 
 ### ChallengeProgress Table
-*Purpose:* Tracks student participation.
+*Purpose:* Tracks student participation, join date, and completion status.
 | Column | Type | Key | Null | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | `id` | INT | PK | No | Auto-incrementing ID |
-| `user_id` | INT | FK | No | Refers to Users.id |
-| `challenge_id` | INT | FK | No | Refers to Challenges.id |
-| `date_completed` | DATE | | No | Date completed |
+| `user_id` | INT | FK | No | Refers to Users.id (ON DELETE CASCADE) |
+| `challenge_id` | INT | FK | No | Refers to Challenges.id (ON DELETE CASCADE) |
+| `start_date` | DATE | | No | Date challenge was joined |
+| `completion_date`| DATE | | Yes | Date completed (NULL if active) |
+| `is_completed` | BOOLEAN | | No | Default False (1 if completed) |
 
 ### Achievements Table
 *Purpose:* Badge definitions.
@@ -230,7 +261,7 @@ The database uses MySQL. The schema is normalized appropriately for the project 
 | `id` | INT | PK | No | Auto-incrementing ID |
 | `name` | VARCHAR(100) | | No | e.g., '7-Day Streak' |
 | `description` | TEXT | | No | Criteria description |
-| `icon_class` | VARCHAR(50) | | Yes | FontAwesome class |
+| `badge_icon` | VARCHAR(50) | | Yes | Lucide/CSS icon descriptor |
 | `criteria_type`| VARCHAR(50) | | No | e.g., 'streak', 'points' |
 | `criteria_value`| INT | | No | Target value |
 
@@ -250,6 +281,7 @@ The database uses MySQL. The schema is normalized appropriately for the project 
 ```mermaid
 erDiagram
     USERS ||--o{ WELLNESS_RECORDS : logs
+    USERS ||--o{ BMI_HISTORY : tracks
     USERS ||--o{ CHALLENGE_PROGRESS : completes
     USERS ||--o{ USER_ACHIEVEMENTS : earns
     CHALLENGES ||--o{ CHALLENGE_PROGRESS : tracked_by
@@ -257,27 +289,59 @@ erDiagram
     
     USERS {
         int id PK
+        string username UK
+        string email UK
         string role
+        float height
+        float weight
+        string gender
+        float bmi
+        string bmi_category
+        string ml_health_status
+        string ml_lifestyle_risk
+    }
+    BMI_HISTORY {
+        int id PK
+        int user_id FK
+        datetime recorded_at
+        float height
+        float weight
+        float bmi
+        string bmi_category
+        string ml_health_status
+        string ml_lifestyle_risk
     }
     WELLNESS_RECORDS {
         int id PK
         int user_id FK
+        date record_date
+        int wellness_score
     }
     CHALLENGES {
         int id PK
+        string title
+        string challenge_type
+        int points
     }
     CHALLENGE_PROGRESS {
         int id PK
         int user_id FK
         int challenge_id FK
+        date start_date
+        date completion_date
+        boolean is_completed
     }
     ACHIEVEMENTS {
         int id PK
+        string name
+        string criteria_type
+        int criteria_value
     }
     USER_ACHIEVEMENTS {
         int id PK
         int user_id FK
         int achievement_id FK
+        datetime earned_at
     }
 ```
 
@@ -295,28 +359,51 @@ The database schema is designed following standard normalization principles to b
 
 ---
 
-## 8. Backend Design
+## 8. System Architecture & Directory Design
 
-The Flask application follows a structured, modular design to ensure maintainability.
+The project employs a decoupled architecture consisting of a React 18 Single-Page Application (SPA) frontend and a Python Flask REST API backend.
 
 ```text
-student-wellness-companion/
+Wellvia/
 │
-├── app/
-│   ├── __init__.py          # Flask app factory, DB initialization
-│   ├── routes/              # Blueprint definitions (auth.py, student.py, admin.py)
-│   ├── models/              # Database interaction layer (SQL queries or lightweight ORM)
-│   ├── services/            # Business logic (gamification.py, scoring.py, analytics.py)
-│   ├── utils/               # Helpers (decorators.py, validation.py)
-│   ├── templates/           # Jinja2 HTML files (base.html, dashboard.html...)
-│   └── static/              # CSS, JS, Images (css/style.css, js/charts.js)
+├── frontend/                     # React 18 Single-Page Application (Vite)
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.js
+│   └── src/
+│       ├── App.jsx               # Application routing and context providers
+│       ├── main.jsx              # Application bootstrap
+│       ├── index.css             # Unified CSS design system & variables
+│       ├── context/              # AuthContext & global state
+│       ├── components/           # Reusable UI components (ChatbotDrawer, Modals, Navbar...)
+│       └── pages/                # Page views (Dashboard, Progress, Challenges, Admin...)
 │
-├── config/
-│   └── settings.py          # Environment variables and config classes
-├── tests/                   # Unit and integration tests
-├── requirements.txt         # Python dependencies
-├── run.py                   # Application entry point
-└── README.md
+├── app/                          # Flask Application Layer
+│   ├── __init__.py               # Flask app factory, CORS, DB & route registration
+│   ├── db.py                     # Database connection helper with PyMySQL
+│   ├── ml_artifacts/             # Pre-trained Random Forest ML models
+│   │   ├── model_bmi_rf.joblib
+│   │   └── model_lifestyle_rf.joblib
+│   ├── routes/
+│   │   ├── __init__.py
+│   │   └── api.py                # Consolidated REST API endpoints (/api/*)
+│   ├── services/                 # Modular business logic
+│   │   ├── chat_service.py       # Google GenAI Gemini engine & local fallback
+│   │   ├── ml_service.py         # ML health status & lifestyle risk prediction
+│   │   ├── scoring.py            # Composite wellness score calculation
+│   │   ├── gamification.py       # Streaks, points, and achievement evaluation
+│   │   ├── analytics.py          # Student progress data aggregation (Pandas)
+│   │   └── admin_analytics.py    # Anonymized campus reporting
+│   └── utils/
+│       ├── bmi.py                # BMI calculation & standard categorization
+│       └── decorators.py         # @api_login_required, @api_student_required, @api_admin_required
+│
+├── tests/                        # Automated test suite (74 pytest test cases)
+├── schema.sql                    # MySQL 8.0+ DDL schema
+├── init_db.py                    # Database schema and seed initialization
+├── requirements.txt              # Backend Python dependencies
+├── run.py                        # Backend application entry point
+└── .env                          # Local environment secrets and database credentials
 ```
 
 ---
@@ -325,58 +412,106 @@ student-wellness-companion/
 
 The backend is strictly divided into layers to enforce separation of concerns:
 
-*   **Routes / Controllers (`app/routes/`):** Responsible *only* for receiving HTTP requests, validating session state, calling the appropriate Service, and returning an HTML template (via Jinja2) or a redirect. They do not contain complex logic or SQL.
-*   **Services (`app/services/`):** Contain the core business rules. For example, `gamification.py` knows *how* to calculate a streak and award points. `scoring.py` knows the formula for the wellness score.
-*   **Models / Data Access (`app/models/`):** Handles all database interactions (`SELECT`, `INSERT`, `UPDATE`). This layer abstracts PyMySQL calls. If the schema changes, only this layer needs updating.
-*   **Utilities (`app/utils/`):** Reusable functions. `decorators.py` contains `@login_required` and `@admin_required` to protect routes securely and cleanly across the app.
+*   **REST Controllers (`app/routes/api.py`):** Responsible *only* for receiving HTTP requests, validating session cookies (`@api_student_required`, `@api_admin_required`), extracting JSON request payloads, calling the appropriate Service, and returning structured JSON responses with appropriate HTTP status codes (`200`, `201`, `400`, `401`, `403`, `404`, `500`).
+*   **Services (`app/services/`):** Encapsulate all business rules:
+    *   `chat_service.py`: Crisis detection (`check_crisis_intent`), dashboard context injection, Gemini API execution, and local fallback.
+    *   `ml_service.py`: Pre-trained Random Forest inference for BMI status and lifestyle risk.
+    *   `scoring.py`: Computes the weighted daily composite wellness score (0–100).
+    *   `gamification.py`: Calculates streak continuity, awards reward points, and unlocks badges.
+    *   `analytics.py`: Student progress aggregation and trend detection via Pandas.
+    *   `admin_analytics.py`: Anonymized campus-wide statistics.
+*   **Data Access Layer (`app/db.py`):** Centralizes PyMySQL database connection management with parameterized queries.
+*   **Utilities (`app/utils/`):** Contains `@api_login_required`, `@api_student_required`, `@api_admin_required` decorators and BMI calculation helpers (`bmi.py`).
 
 ---
 
 ## 10. API / Route Design
 
-The application uses Server-Side Rendering (SSR). Routes primarily return HTML, except for analytics endpoints which may return JSON for Chart.js.
+The application communicates exclusively via a RESTful JSON API under `/api/*`:
 
 | Method | Endpoint | Role | Purpose |
 | :--- | :--- | :--- | :--- |
-| **Auth Routes** |
-| GET/POST | `/login` | Public | Display form / Authenticate user |
-| GET/POST | `/register` | Public | Display form / Create account |
-| GET | `/logout` | Any | Destroy session |
-| **Student Routes** |
-| GET | `/dashboard` | Student | Display daily summary and widgets |
-| GET/POST | `/wellness` | Student | Display form / Submit daily wellness data |
-| GET | `/tips` | Student | Browse tips |
-| GET | `/challenges` | Student | View active challenges |
-| POST | `/challenges/<id>/complete`| Student| Mark challenge complete |
-| GET | `/progress` | Student | View personal analytics page |
-| GET | `/api/my-charts` | Student | Return JSON data for Chart.js |
-| **Admin Routes** |
-| GET | `/admin/dashboard` | Admin | View aggregated stats |
-| GET | `/admin/users` | Admin | View user list |
-| POST | `/admin/users/toggle/<id>`| Admin | Activate/Deactivate user |
-| GET/POST | `/admin/tips` | Admin | Manage system tips |
-| GET/POST | `/admin/challenges` | Admin | Manage system challenges |
+| **Auth Routes** | | | |
+| POST | `/api/auth/register` | Public | Register new student account |
+| POST | `/api/auth/login` | Public | Authenticate credentials and establish session |
+| POST | `/api/auth/logout` | Authenticated | Destroy session cookie |
+| GET | `/api/auth/me` | Authenticated | Retrieve current session user profile & role |
+| **Student Routes** | | | |
+| GET | `/api/student/dashboard` | Student | Retrieve student dashboard stats, streaks, score, active challenges |
+| POST | `/api/student/log` | Student | Submit daily wellness metrics (sleep, water, exercise, mood, stress, study) |
+| POST | `/api/student/body-metrics` | Student | Update height, weight, gender; triggers BMI & ML risk assessment |
+| GET | `/api/student/progress` | Student | Retrieve 4-section progress analytics (overview, trends, analysis, areas to improve) |
+| GET | `/api/student/challenges` | Student | List active and completed challenges |
+| POST | `/api/student/challenges/<id>/join` | Student | Join an active challenge |
+| POST | `/api/student/challenges/<id>/complete` | Student | Mark challenge complete and receive reward points |
+| GET | `/api/student/tips` | Student | Retrieve curated wellness tips |
+| **Chatbot Route** | | | |
+| POST | `/api/chat/message` | Student | Send query to Gemini wellness companion (crisis interception & context-aware) |
+| **Admin Routes** | | | |
+| GET | `/api/admin/overview` | Admin | Retrieve aggregated, anonymized campus statistics |
+| GET | `/api/admin/students` | Admin | View student account roster (points, status, join date) |
+| POST | `/api/admin/students/<id>/toggle-status` | Admin | Activate or deactivate student account |
+| GET | `/api/admin/challenges` | Admin | List all challenges for administration |
+| POST | `/api/admin/challenges` | Admin | Create new challenge |
+| PUT | `/api/admin/challenges/<id>` | Admin | Update existing challenge |
+| DELETE | `/api/admin/challenges/<id>` | Admin | Delete challenge |
+| GET | `/api/admin/tips` | Admin | List all wellness tips for administration |
+| POST | `/api/admin/tips` | Admin | Create new wellness tip |
+| PUT | `/api/admin/tips/<id>` | Admin | Update existing wellness tip |
+| DELETE | `/api/admin/tips/<id>` | Admin | Delete wellness tip |
 
 ---
 
 ## 11. Request and Response Design
 
-Data flows primarily via standard HTML Form submissions (`application/x-www-form-urlencoded`).
+Data flows between the React SPA and Flask REST API strictly as JSON payloads (`application/json`). Authentication relies on HTTP-only session cookies.
 
-However, for chart rendering, the frontend uses JavaScript (fetch API) to request data.
-
-**Example Request to `/api/my-charts` (GET):**
-*(No body required, relies on secure session cookie to identify user)*
-
-**Example Response (JSON):**
+**Example Request to `/api/student/log` (POST):**
 ```json
 {
-  "labels": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-  "sleep_data": [7.5, 6.0, 8.0, 7.0, 5.5, 9.0, 8.5],
-  "wellness_scores": [85, 70, 90, 80, 65, 95, 90]
+  "sleep_hours": 7.5,
+  "sleep_quality": 4,
+  "water_glasses": 8,
+  "exercise_type": "Running",
+  "exercise_duration": 30,
+  "exercise_intensity": "Moderate",
+  "mood": 4,
+  "stress_level": 2,
+  "study_hours": 5.0,
+  "study_sessions": 2,
+  "study_subject": "Computer Science"
 }
 ```
-*Security Note:* This JSON response never contains sensitive personal data or raw passwords.
+
+**Example Response from `/api/student/log` (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Wellness record saved successfully",
+  "data": {
+    "wellness_score": 88,
+    "points_awarded": 10,
+    "current_streak": 5,
+    "new_badges": []
+  }
+}
+```
+
+**Example Request to `/api/chat/message` (POST):**
+```json
+{
+  "message": "I've been feeling stressed about my upcoming exams. Any advice based on my routine?"
+}
+```
+
+**Example Response from `/api/chat/message` (200 OK):**
+```json
+{
+  "reply": "I see you logged 5 hours of study today, but your sleep was 5.5 hours with stress at 4/5. To sustain your focus, aim for at least 7 hours of rest tonight...",
+  "source": "gemini"
+}
+```
+*Security Note:* API responses never expose password hashes, internal server paths, or private data of other students.
 
 ---
 
@@ -465,34 +600,36 @@ Challenges encourage positive habits.
 
 ---
 
-## 18. Chart.js Design
+## 18. Data Visualization Design
 
-Data visualization is handled client-side by Chart.js, fed by JSON from Flask.
+Data visualization is handled client-side using React-rendered custom SVG components and dynamic CSS bars, consuming JSON payloads from the Flask REST API:
 
-| Data Metric | Appropriate Chart Type |
+| Data Metric | Appropriate Visualization |
 | :--- | :--- |
-| Sleep & Study Trend (Over time) | Line Chart |
-| Hydration (Daily vs Target) | Bar Chart |
-| Mood vs Stress Correlation | Multi-axis Line Chart |
-| Overall Habit Completion Rate | Doughnut Chart |
-| Admin: System Mood Distribution | Pie Chart |
+| Sleep & Study Trend (Over 7, 14, 30 days) | Custom dynamic SVG/CSS Bar Charts with goal markers |
+| Hydration (Daily vs Target) | Progress fill bars & daily comparison cards |
+| Mood & Stress Tracking | Multi-day comparative bar tracks and status badges |
+| Overall Habit Completion Rate | Percentage progress rings and completion indicators |
+| Admin: Campus Trends & Distributions | Aggregate metric cards and comparative distribution bars |
 
-*Implementation:* The Flask template includes a `<canvas>` element. JavaScript fetches the data from the API endpoint and instantiates the `new Chart(ctx, config)` object.
+*Implementation:* The React `ProgressPage.jsx` component fetches structured data from `/api/student/progress`, calculates dynamic SVG coordinates and percentages, and renders responsive visualizations with instant hover tooltips and category breakdowns.
 
 ---
 
 ## 19. Authentication Design
 
-*   **Registration:** Passwords are hashed immediately using `werkzeug.security.generate_password_hash`.
-*   **Login:** Evaluates `check_password_hash`. If successful, sets `session['user_id'] = user.id` and `session['role'] = user.role`.
-*   **Session Management:** Flask securely signs the session cookie using `SECRET_KEY`. It cannot be tampered with by the client.
-*   **Protected Routes:** Utilize custom decorators.
+*   **Registration:** Passwords are hashed immediately using `werkzeug.security.generate_password_hash` with `scrypt:32768:8:1`.
+*   **Login:** Evaluates credentials via `check_password_hash`. If successful, sets `session['user_id'] = user.id` and `session['role'] = user.role` within a signed, HTTP-only session cookie.
+*   **Session Management:** Flask cryptographically signs session cookies using `SECRET_KEY`, preventing client tampering.
+*   **Protected REST Endpoints:** Enforced via custom API decorators in `app/utils/decorators.py`:
     ```python
-    def login_required(f):
+    def api_student_required(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if 'user_id' not in session:
-                return redirect(url_for('auth.login'))
+                return jsonify({'success': False, 'message': 'Authentication required'}), 401
+            if session.get('role') != 'student':
+                return jsonify({'success': False, 'message': 'Student privileges required'}), 403
             return f(*args, **kwargs)
         return decorated_function
     ```
@@ -501,112 +638,128 @@ Data visualization is handled client-side by Chart.js, fed by JSON from Flask.
 
 ## 20. Authorization Design
 
-Authorization occurs after Authentication, determining permissions based on `session['role']`.
+Authorization occurs after authentication, strictly verifying permissions based on `session['role']`:
 
-*   **Student Role:** Can access `/dashboard`, `/wellness`. Cannot access `/admin/*`.
-*   **Admin Role:** Can access `/admin/dashboard`, `/admin/tips`. Cannot access `/wellness`.
+*   **Student Role:** Can access `/dashboard`, `/progress`, `/challenges`, and `/api/student/*` as well as `/api/chat/*`. Cannot access `/admin/*` or `/api/admin/*`.
+*   **Admin Role:** Can access `/admin/dashboard`, `/admin/challenges`, `/admin/tips`, and `/api/admin/*`. Cannot access personal wellness tracking routes.
 
-Route-level enforcement is handled by an `@admin_required` decorator that aborts with HTTP 403 (Forbidden) if a student attempts access. Data-level authorization (accessing specific DB rows) relies on `user_id` matching in SQL queries.
+Route-level enforcement is handled by `@api_admin_required` which returns HTTP 403 (Forbidden) JSON if a student attempts access. Data-level authorization relies on filtering queries with `WHERE user_id = :session_user_id`.
 
 ---
 
 ## 21. Security Design
 
-*   **Password Hashing:** `bcrypt` via Werkzeug.
-*   **SQL Injection Prevention:** All PyMySQL queries use parameterized inputs (e.g., `execute("SELECT * FROM users WHERE id = %s", (user_id,))`).
-*   **Cross-Site Scripting (XSS):** Jinja2 automatically escapes all template variables.
-*   **CSRF Protection:** Implemented natively if using Flask-WTF forms, or enforced via session-backed token checks for manual POST requests.
-*   **Secrets Management:** Database URI and `SECRET_KEY` are stored in environment variables (e.g., `.env`), never committed to source control.
+*   **Password Hashing:** `scrypt` (`scrypt:32768:8:1`) via Werkzeug, providing memory-hard brute-force resistance.
+*   **SQL Injection Prevention:** All PyMySQL queries use parameterized placeholders (`%s`), strictly preventing SQL injection.
+*   **Cross-Site Scripting (XSS):** React JSX automatically escapes variable interpolations before DOM rendering. Flask REST endpoints return pure JSON (`jsonify`), preventing reflected or stored script injection.
+*   **Session Security:** Session cookies are configured with `HttpOnly=True`, `SameSite='Lax'`, and `Secure=True` in production.
+*   **AI Safety Interception:** `chat_service.py` executes `check_crisis_intent()` on incoming prompts, immediately returning crisis hotline resources (988 Lifeline, 741741 Crisis Text Line) when distress is detected.
+*   **Secrets Management:** Database credentials, `SECRET_KEY`, and `GEMINI_API_KEY` are stored in `.env` and accessed via `os.environ`.
 
 ---
 
 ## 22. Error Handling
 
-Flask's `@app.errorhandler` is used to catch and manage exceptions gracefully.
+Flask error handlers and REST conventions ensure consistent error structures:
 
-*   **404 Not Found:** Renders a friendly "Page not found" template with a link back to the dashboard.
-*   **403 Forbidden:** Displayed when a user attempts unauthorized access.
-*   **500 Internal Error:** Renders a generic "Something went wrong" page to the user, while logging the stack trace to the server console.
-*   **Form Errors:** Flashed to the UI using Flask's `flash()` mechanism (e.g., "Sleep hours must be between 0 and 24"). Technical DB errors are masked.
+*   **400 Bad Request:** Returned when incoming JSON payloads fail schema or range validations.
+*   **401 Unauthorized:** Returned when an unauthenticated request attempts to access protected `/api/*` endpoints.
+*   **403 Forbidden:** Returned when a user role lacks permissions for the target endpoint.
+*   **404 Not Found:** Returned when requested resources (challenge, tip, user) do not exist.
+*   **500 Internal Error:** Handled gracefully, returning a generic error message while logging the stack trace server-side.
 
 ---
 
 ## 23. Logging and Monitoring
 
-A basic Python `logging` configuration is implemented.
+A structured Python `logging` configuration is implemented:
 
-*   **Info Level:** Logs successful logins, admin content creation.
-*   **Warning Level:** Logs failed login attempts (potential brute force), 403 Forbidden access attempts.
-*   **Error Level:** Logs database connection failures, unhandled exceptions.
-*   **Strictly Prohibited from Logs:** Plain-text passwords, session cookies, personal health content.
+*   **Info Level:** Logs successful logins, challenge joins/completions, and admin content operations.
+*   **Warning Level:** Logs failed login attempts, 403 Forbidden access attempts, and fallback triggers.
+*   **Error Level:** Logs database connectivity errors, Gemini API exceptions, and ML model deserialization issues.
+*   **Strictly Prohibited from Logs:** Plain-text passwords, password hashes, session cookies, and personal health metrics.
 
 ---
 
 ## 24. Frontend Design
 
-The UI is built with HTML5, CSS3, and Bootstrap 5 for responsiveness.
+The frontend is an interactive Single-Page Application built with **React 18**, **Vite**, **React Router DOM**, and **Lucide React** icons.
 
-*   **Navigation:** A top Navbar (collapses to a hamburger menu on mobile) containing links to Dashboard, Tips, and Logout.
-*   **Student Dashboard:** Uses a grid layout. Top row: Score cards (Points, Streak, Wellness Score). Middle row: Active challenge and Daily Tip. Bottom row: Mini-charts or recent logs.
-*   **Admin Dashboard:** Distinct visual theme (e.g., darker navbar) to visually differentiate from the student view. Features wide charts and data tables for user management.
+*   **Design System:** Unified custom CSS (`index.css`) utilizing CSS variables for theme colors, responsive cards, glassmorphic accents, and smooth transitions.
+*   **Navigation:** Global header component with responsive links, active page indicators, role-aware routing, and logout controls.
+*   **Student Dashboard (`DashboardPage.jsx`):** Grid layout featuring:
+    *   Top: Summary cards (Wellness Score 0–100, Total Points, Active Streaks).
+    *   Middle: Body Metrics card with BMI & ML Health Assessment, Quick Wellness Logger trigger.
+    *   Bottom: Active Challenges, Curated Daily Tip, and Recent Log History.
+*   **Progress Analytics (`ProgressPage.jsx`):** 4-section layout:
+    1.  *Wellness Overview:* High-level averages and consistency rate.
+    2.  *Daily Wellness Charts:* Interactive SVG bar charts with 7/14/30 day toggle.
+    3.  *Your Wellness Analysis:* Automatic pattern-based observations.
+    4.  *Areas to Improve:* Actionable targeted habit suggestions.
+*   **AI Wellness Drawer (`ChatbotDrawer.jsx`):** Floating conversational drawer integrating Google Gemini guidance, student dashboard context, quick action prompts, and emergency assistance.
 
 ---
 
 ## 25. UI Component Design
 
-Jinja2 template inheritance and macros are heavily utilized to reduce code duplication (DRY principle).
+The frontend codebase is organized into modular, reusable React components:
 
-*   `base.html`: Contains the `<head>`, Bootstrap CDN links, Navbar, and Footer. All other pages `{% extends 'base.html' %}`.
-*   `_formhelpers.html` (Macro): Reusable macro for rendering form inputs, labels, and validation error texts uniformly.
-*   **Cards:** Bootstrap `.card` classes are standardized for widgets (Tips, Challenges).
-*   **Alerts:** Flask flashed messages are rendered uniformly as Bootstrap `.alert-dismissible` components at the top of the content block.
+*   `Navbar.jsx`: Unified top navigation bar supporting student and admin view states.
+*   `ProtectedRoute.jsx`: High-order route wrapper checking `AuthContext` to prevent unauthorized client transitions.
+*   `ChatbotDrawer.jsx`: Real-time chat interface featuring auto-scroll, message timestamps, and markdown formatting.
+*   `FloatingChatButton.jsx`: Persistent bottom-right floating trigger with notification indicator.
+*   `BodyMetricsModal.jsx`: Modal dialog for student height, weight, and gender submission with real-time BMI feedback.
+*   `WellnessLogModal.jsx`: Interactive daily tracker for sleep, hydration, exercise, mood, stress, and study.
 
 ---
 
 ## 26. Deployment Design
 
 **Development Environment:**
-Local execution using `flask run`. Uses a local MySQL instance (e.g., XAMPP or local Docker container). Debug mode `True`.
+*   Frontend: Vite dev server running at `http://localhost:5173` with proxy or CORS to backend.
+*   Backend: Flask application running at `http://localhost:5000` with debug mode.
+*   Database: Local MySQL 8.x instance on port 3306.
 
 **Production Environment (Realistic for BCA Project):**
 ```mermaid
 flowchart TD
-    Internet["Internet (Users)"]
-    VPS["University Server / VPS"]
-    WSGI["Gunicorn (WSGI Server)"]
-    App["Flask Application"]
-    DB[("MySQL Database")]
+    Browser["Client Browser<br/>(React SPA)"]
+    Server["Application Host / VPS"]
+    WSGI["Gunicorn / Waitress<br/>(WSGI Host)"]
+    Flask["Flask REST API Layer"]
+    DB[("MySQL Database<br/>(localhost:3306)")]
 
-    Internet -->|HTTP/HTTPS| WSGI
-    WSGI --> App
-    App --> DB
+    Browser -->|HTTP/HTTPS REST| WSGI
+    WSGI --> Flask
+    Flask --> DB
 ```
-*Note:* A full Nginx reverse proxy is ideal, but for a simple project deployment, running Gunicorn binding to a public port is sufficient. Cloud infrastructure is not required.
+*Note:* The Vite build outputs static assets (`dist/`) that can be served via Nginx or bundled with the Flask backend.
 
 ---
 
 ## 27. Configuration Management
 
-Configuration is handled via Python classes in `config/settings.py`, loading from `.env`.
+Configuration is managed via Python classes in `config/settings.py` (or Flask config), loading from `.env`:
 
 ```python
 import os
+
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'default-dev-key')
     MYSQL_HOST = os.environ.get('MYSQL_HOST', 'localhost')
     MYSQL_USER = os.environ.get('MYSQL_USER', 'root')
     MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD', '')
     MYSQL_DB = os.environ.get('MYSQL_DB', 'wellness_db')
+    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
 ```
-In development, a `.env` file is used. In production, real environment variables are set on the server.
 
 ---
 
 ## 28. Testing Strategy
 
-*   **Unit Testing:** (pytest or unittest) Test utility functions (e.g., wellness score math, password hashing).
-*   **Integration Testing:** Test Flask routes using the Flask test client to ensure the database updates correctly when a form is submitted.
-*   **Security Testing:** Ensure routes decorated with `@admin_required` return 403 when accessed by a test student client.
+*   **Unit Testing:** (`pytest`) Tests scoring formulas (`test_scoring.py`), gamification streak logic (`test_gamification.py`), password hashing (`test_auth.py`), and BMI categorization (`test_bmi.py`).
+*   **Integration Testing:** Tests Flask REST API endpoints via the Flask test client (`test_api.py`), verifying JSON request/response formats and status codes.
+*   **Security Testing:** Tests role enforcement (`@api_admin_required`) ensuring students cannot invoke admin endpoints.
 
 ---
 
@@ -614,57 +767,58 @@ In development, a `.env` file is used. In production, real environment variables
 
 | ID | Feature | Test Case | Expected Result |
 | :--- | :--- | :--- | :--- |
-| TC-01 | Auth | Register with existing email | Form fails, flashes "Email already in use" |
-| TC-02 | Auth | Login with incorrect password | Form fails, flashes "Invalid credentials" |
-| TC-03 | Wellness | Submit 30 hours of sleep | Validation fails, DB is not updated |
-| TC-04 | Wellness | Submit valid metrics | Success, redirects to Dashboard, Score updates |
-| TC-05 | Admin | Admin creates tip | Tip appears in `WellnessTips` table |
-| TC-07 | Security | Access `/admin/dashboard` as Student | Route returns 403 Forbidden |
+| TC-01 | Auth | Register with existing email | API returns 400 Bad Request JSON |
+| TC-02 | Auth | Login with incorrect password | API returns 401 Unauthorized JSON |
+| TC-03 | Wellness | Submit 30 hours of sleep | Validation fails, returns 400 Bad Request |
+| TC-04 | Wellness | Submit valid metrics | Returns 200 OK, updates records & score |
+| TC-05 | Admin | Admin creates tip | Tip created in `wellness_tips`, returns 201 |
+| TC-06 | Chatbot | Send prompt mentioning distress | Triggers crisis intervention with hotline numbers |
+| TC-07 | Security | Access `/api/admin/overview` as Student | Route returns 403 Forbidden |
 
 ---
 
 ## 30. Performance Considerations
 
-Given the project scale, performance optimizations are kept practical:
-*   **Database Indexing:** Primary keys are automatically indexed. An index on `(user_id, record_date)` in `WellnessRecords` ensures rapid dashboard loading.
-*   **Query Efficiency:** Avoiding N+1 query problems by using carefully constructed SQL rather than naive loops.
-*   **Static Assets:** Bootstrap and Chart.js are loaded via CDNs, taking advantage of browser caching.
+*   **Database Indexing:** Indexed lookups on `(user_id, record_date)` in `wellness_records` and `(user_id, recorded_at)` in `bmi_history`.
+*   **Decoupled Frontend:** React SPA handles view transitions client-side without full-page browser reloads.
+*   **Lightweight Visualizations:** Custom SVG rendering eliminates heavy external charting libraries, optimizing bundle size.
+*   **Fast ML Inference:** Pre-trained Random Forest models stored in `.joblib` load into memory on startup for instant tabular classification.
 
 ---
 
 ## 31. Backup and Recovery
 
-For a college project, standard `mysqldump` is sufficient.
-*   A simple shell script running `mysqldump -u root -p wellness_db > backup.sql` can be executed periodically.
-*   Recovery is a straightforward import: `mysql -u root -p wellness_db < backup.sql`.
+Standard `mysqldump` workflow for academic database backup:
+*   Backup command: `mysqldump -u root -p wellness_db > backup.sql`
+*   Recovery command: `mysql -u root -p wellness_db < backup.sql`
 
 ---
 
 ## 32. Design Constraints
 
-*   **Limited Timeline:** The system utilizes a monolithic architecture and server-side rendering to ensure completion within an academic semester.
-*   **Manual Entry:** The system relies entirely on students self-reporting data accurately.
-*   **No Wearables:** API integration for smartwatches is excluded to maintain scope.
-*   **Non-Clinical:** The system enforces standard UI disclaimers that it is not a medical diagnostic tool.
+*   **Academic Timeline:** Completed within a single academic semester utilizing a cohesive React + Flask stack.
+*   **Manual Entry:** All daily wellness metrics are self-reported by students.
+*   **No Wearables:** Smartwatch API syncing is excluded from the current scope.
+*   **Non-Clinical Tool:** The application includes persistent disclaimers that it is an educational self-awareness companion, not a clinical diagnostic tool.
 
 ---
 
 ## 33. Design Assumptions
 
-*   Students possess a modern web browser capable of executing JavaScript (required for Chart.js).
-*   The MySQL database is continuously available to the Flask backend.
-*   Admin users are trustworthy and are manually created by developers (no public admin registration route).
-*   Python 3.8+ and MySQL 8+ environment is available.
+*   Students use a modern web browser supporting ECMAScript 6+ and React 18.
+*   The MySQL database is locally or network accessible to the Flask application.
+*   Administrator accounts are pre-seeded during setup (no public admin self-registration).
+*   Python 3.8+ and Node.js are available in the development environment.
 
 ---
 
 ## 34. Future Technical Enhancements
 
-*These are explicitly NOT part of the current implementation blueprint.*
-*   **RESTful API / SPA:** Decoupling the frontend into a React/Vue Single Page Application communicating with Flask via JSON APIs.
-*   **Mobile App:** Creating a companion Android app using the aforementioned API.
-*   **Push Notifications:** Implementing a task queue (Celery/Redis) to send email or web push reminders to log data.
-*   **Wearable Integration:** Consuming data from Google Fit or Apple Health APIs.
+*These are explicitly beyond the current v1 release:*
+*   **Native Mobile Application:** Building a React Native mobile companion that consumes the existing `/api/*` endpoints.
+*   **Push Notifications:** Background worker (Celery/Redis) sending reminders for daily logs and challenge deadlines.
+*   **Wearable Integration:** Direct synchronization with Google Fit or Apple Health APIs.
+*   **Campus SSO Integration:** Centralized authentication via university LDAP or SAML single-sign-on.
 
 ---
 
@@ -672,13 +826,15 @@ For a college project, standard `mysqldump` is sufficient.
 
 | Project Objective | Architecture Component | System Module |
 | :--- | :--- | :--- |
-| Holistic Wellness Tracking | Application Layer (Flask) | Wellness Tracking Service |
-| Self-Awareness | Data Access Layer (Pandas) | Progress Analytics / Chart.js |
-| Gamification | Business Logic Layer | Gamification & Achievements |
-| Institutional Insights | Data Access Layer | Admin Analytics Reporting |
+| Holistic Wellness Tracking | Flask REST API & React Forms | Wellness Tracking Service (`api.py`) |
+| Self-Awareness & Visual Analytics | React SVG Visualizations | Progress Analytics Service (`analytics.py`, `ProgressPage.jsx`) |
+| AI Guidance & Safety | Google GenAI SDK & Fallback Engine | Chat Service (`chat_service.py`, `ChatbotDrawer.jsx`) |
+| Physical & Lifestyle ML Assessment | Scikit-Learn Random Forest Pipeline | ML Service (`ml_service.py`, `model_*.joblib`) |
+| Gamification & Habit Motivation | Business Logic Layer | Gamification & Scoring (`gamification.py`, `scoring.py`) |
+| Institutional Insights | Data Access Layer | Admin Analytics Reporting (`admin_analytics.py`) |
 
 ---
 
 ## 36. System Design Summary
 
-This System Design provides a pragmatic, secure, and maintainable blueprint for the Student Wellness Companion. By leveraging a structured Flask backend, a normalized MySQL database, and strict role-based access control, the system guarantees student privacy while delivering core wellness tracking features. The layered architecture ensures business logic (like gamification and scoring) remains independent of routing, allowing for clean code and straightforward future expandability, perfectly aligning with the constraints and goals of a BCA-level project.
+This System Design provides a pragmatic, secure, and maintainable blueprint for the Student Wellness Companion (Wellvia). By leveraging a modern React 18 SPA frontend, a modular Python Flask REST API, pre-trained Random Forest machine learning models, and Google Gemini AI guidance, the system delivers an engaging, personalized wellness experience while ensuring student privacy and data integrity. The decoupled architecture ensures that UI improvements and backend analytics can evolve independently, perfectly fulfilling the academic requirements of a BCA-level project.
