@@ -361,7 +361,7 @@ export function ChatbotDrawer({ isOpen, onClose, onToggle }) {
 
       {/* Privacy Notice Banner */}
       <div className="chat-privacy-notice">
-        <span>🔒 Confidential & Private • Your mood & health records are never shared with AI.</span>
+        <span>✨ Personalized Companion • Tailored to your dashboard metrics & habits</span>
       </div>
 
       {/* Messages Scroll Area */}

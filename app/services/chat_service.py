@@ -120,15 +120,138 @@ def check_crisis_intent(text: str) -> bool:
     return bool(CRISIS_REGEX.search(text))
 
 
+def build_user_wellness_context(user_context: Optional[Dict[str, Any]]) -> str:
+    """Format student's live dashboard profile and recorded habits for AI prompt context."""
+    if not user_context:
+        return ""
+
+    lines = ["--- STUDENT DASHBOARD & USER DATA CONTEXT ---"]
+    username = user_context.get('username') or 'Student'
+    lines.append(f"Student Username: {username}")
+    if user_context.get('gender'):
+        lines.append(f"Gender: {user_context['gender']}")
+
+    height = user_context.get('height')
+    weight = user_context.get('weight')
+    bmi = user_context.get('bmi')
+    bmi_category = user_context.get('bmi_category')
+    ml_status = user_context.get('ml_health_status')
+    ml_risk = user_context.get('ml_lifestyle_risk')
+
+    if height is not None or weight is not None or bmi is not None:
+        lines.append(f"Body Metrics: Height {height} cm, Weight {weight} kg")
+        lines.append(f"Body Mass Index (BMI): {bmi} (Classification: {bmi_category or 'Normal weight'})")
+        if ml_status or ml_risk:
+            lines.append(f"ML Health Classifier Status: {ml_status or 'Normal'}")
+            lines.append(f"ML Lifestyle Risk Assessment: {ml_risk or 'Optimal Healthy Weight'}")
+
+    rec = user_context.get('today_record') or {}
+    score = rec.get('wellness_score')
+    if score is not None:
+        lines.append(f"Today's Overall Wellness Score: {score}/100")
+
+    habit_items = []
+    if rec.get('sleep_hours') is not None:
+        q = f" (Quality: {rec['sleep_quality']}/5)" if rec.get('sleep_quality') else ""
+        habit_items.append(f"Sleep: {rec['sleep_hours']} hrs{q}")
+    if rec.get('water_glasses') is not None:
+        habit_items.append(f"Hydration: {rec['water_glasses']} glasses of water")
+    if rec.get('exercise_duration') is not None:
+        etype = rec.get('exercise_type') or 'Activity'
+        intensity = f" (Intensity: {rec['exercise_intensity']})" if rec.get('exercise_intensity') else ""
+        habit_items.append(f"Exercise: {rec['exercise_duration']} mins of {etype}{intensity}")
+    if rec.get('study_hours') is not None:
+        sessions = f" ({rec['study_sessions']} sessions)" if rec.get('study_sessions') else ""
+        habit_items.append(f"Study: {rec['study_hours']} hrs{sessions}")
+    if rec.get('stress_level') is not None:
+        stress_labels = {1: 'Very Low (1/5)', 2: 'Low (2/5)', 3: 'Moderate (3/5)', 4: 'High (4/5)', 5: 'Very High (5/5)'}
+        stress_val = rec['stress_level']
+        habit_items.append(f"Stress Level: {stress_labels.get(stress_val, str(stress_val) + '/5')}")
+    if rec.get('mood') is not None:
+        mood_labels = {1: 'Very Sad (1/5)', 2: 'Sad (2/5)', 3: 'Neutral (3/5)', 4: 'Happy (4/5)', 5: 'Very Happy (5/5)'}
+        mood_val = rec['mood']
+        habit_items.append(f"Mood: {mood_labels.get(mood_val, str(mood_val) + '/5')}")
+
+    if habit_items:
+        lines.append("Today's Recorded Habits on Dashboard:")
+        for h in habit_items:
+            lines.append(f"  • {h}")
+
+    streak = user_context.get('streak')
+    if streak is not None:
+        lines.append(f"Current Habit Consistency Streak: {streak} days")
+    points = user_context.get('total_points')
+    if points is not None:
+        lines.append(f"Total Wellness Points: {points} pts")
+
+    lines.append(
+        "\nPERSONALIZATION & DASHBOARD INTEGRATION INSTRUCTIONS:\n"
+        "You have direct access to the student's real-time dashboard data above.\n"
+        "1. Direct Answers on Health & Body Metrics: If the student asks 'am I overweight?', 'what is my BMI?', 'is my weight healthy?', or similar questions, "
+        "DO NOT respond generically or tell them to go calculate it. State their recorded height, weight, and BMI directly, and answer clearly and warmly based on their recorded classification (e.g. 'Based on your recorded height of 168 cm and weight of 62 kg, your BMI is 21.97, which places you in the healthy Normal Weight range. You are not overweight!').\n"
+        "2. Habits & Routine Awareness: When discussing sleep, water, workouts, or stress, acknowledge and build on what they have already logged on their dashboard today (e.g., their sleep duration, water glasses, or 100/100 wellness score).\n"
+        "3. Supportive Demeanor: Keep advice practical, reassuring, and tailored to student life."
+    )
+    return "\n".join(lines)
+
+
 def get_contextual_fallback_response(
     message: str,
-    history: Optional[List[Dict[str, Any]]] = None
+    history: Optional[List[Dict[str, Any]]] = None,
+    user_context: Optional[Dict[str, Any]] = None
 ) -> str:
     """
     Selects a topic-relevant, non-repetitive fallback response when Gemini is offline or unavailable.
-    Inspects previous assistant responses to avoid sending identical replies repeatedly.
+    Personalizes responses using the student's dashboard metrics if available.
     """
     msg_lower = (message or '').lower()
+
+    # 1. Personalized responses for weight, BMI, or physical metric inquiries
+    if user_context and any(kw in msg_lower for kw in ['overweight', 'underweight', 'fat', 'skinny', 'weight', 'bmi', 'height', 'body metric', 'body mass']):
+        h = user_context.get('height')
+        w = user_context.get('weight')
+        bmi = user_context.get('bmi')
+        cat = user_context.get('bmi_category') or 'Normal weight'
+        ml_status = user_context.get('ml_health_status') or 'Normal'
+        ml_risk = user_context.get('ml_lifestyle_risk') or 'Optimal Healthy Weight'
+
+        if bmi is not None and h and w:
+            is_overweight = 'overweight' in cat.lower() or 'obese' in cat.lower()
+            verdict = "You are currently categorized in the overweight range." if is_overweight else f"No, you are not overweight! Your Body Mass Index (BMI) of {bmi:.2f} places you firmly in the healthy '{cat}' category."
+            return (
+                f"Based on your recorded dashboard metrics:\n\n"
+                f"• Height: {h} cm\n"
+                f"• Weight: {w} kg\n"
+                f"• BMI: {bmi:.2f} ({cat})\n"
+                f"• Health Assessment: {ml_status} ({ml_risk})\n\n"
+                f"{verdict} You have an outstanding wellness score on your dashboard today. Keep up your balanced routine!"
+            )
+
+    # 2. Personalized response for sleep questions
+    if user_context and any(kw in msg_lower for kw in ['my sleep', 'how much sleep', 'how did i sleep', 'did i sleep enough']):
+        rec = user_context.get('today_record') or {}
+        sleep = rec.get('sleep_hours')
+        if sleep is not None:
+            quality = f" (quality rating: {rec['sleep_quality']}/5)" if rec.get('sleep_quality') else ""
+            benchmark = "meeting the recommended 7–9 hour target for students" if sleep >= 7 else "which is slightly below the 7–9 hour target for optimal focus"
+            return f"According to your dashboard today, you logged {sleep} hours of sleep{quality}, {benchmark}. Try to keep a consistent bedtime tonight to support your routine."
+
+    # 3. Personalized response for hydration questions
+    if user_context and any(kw in msg_lower for kw in ['my water', 'how much water', 'did i drink enough', 'my hydration']):
+        rec = user_context.get('today_record') or {}
+        water = rec.get('water_glasses')
+        if water is not None:
+            benchmark = "meeting the recommended 8+ daily glasses goal" if water >= 8 else f"you are on your way toward the recommended 8 glasses ({8 - water} more to reach your goal)"
+            return f"Looking at your dashboard today, you recorded {water} glasses of water, {benchmark}. Keep a water bottle at your study space to stay energized!"
+
+    # 4. Personalized response for score and streak questions
+    if user_context and any(kw in msg_lower for kw in ['my score', 'wellness score', 'my streak', 'my points']):
+        rec = user_context.get('today_record') or {}
+        score = rec.get('wellness_score')
+        streak = user_context.get('streak', 0)
+        pts = user_context.get('total_points', 0)
+        score_text = f"Today's wellness score is {score}/100" if score is not None else "You haven't logged today's activities yet"
+        return f"{score_text}, with a {streak}-day consistency streak and {pts} total wellness points earned on Wellvia! Keep up the great consistency."
 
     # Identify matching topic
     matched_topic = 'general'
@@ -148,6 +271,7 @@ def get_contextual_fallback_response(
             role = str(item.get('role') or item.get('sender') or '').lower()
             if role not in ('user', 'human', 'student'):
                 previous_assistant_texts += " " + str(item.get('text') or item.get('message') or '')
+
     previous_lower = previous_assistant_texts.lower()
 
     # Filter out options that recently appeared in the conversation
@@ -257,16 +381,16 @@ def sanitize_and_format_history(
 
 def generate_wellness_chat_reply(
     message: str,
-    history: Optional[List[Dict[str, Any]]] = None
+    history: Optional[List[Dict[str, Any]]] = None,
+    user_context: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
     Generates a supportive wellness response.
     1. Evaluates crisis keywords immediately and returns crisis resources if found.
     2. Enforces input bounds.
     3. If GEMINI_API_KEY is configured, calls Gemini via official google-genai SDK
-       with resilient model fallback (preferred model -> backup models).
-    4. If GEMINI_API_KEY is absent or API fails, smoothly falls back to contextual guidance.
-    5. Strictly isolates student health/mood data: never injects or forwards database metrics.
+       with personalized system prompt reflecting student's dashboard metrics and logged habits.
+    4. If GEMINI_API_KEY is absent or API fails, smoothly falls back to personalized contextual guidance.
     """
     clean_message = (message or "").strip()
 
@@ -284,7 +408,7 @@ def generate_wellness_chat_reply(
         logger.info("GEMINI_API_KEY is not configured on server; serving local wellness guidance.")
         return {
             'success': True,
-            'reply': get_contextual_fallback_response(clean_message, history),
+            'reply': get_contextual_fallback_response(clean_message, history, user_context=user_context),
             'source': 'wellvia_local_assistant'
         }
 
@@ -307,8 +431,14 @@ def generate_wellness_chat_reply(
             )
         )
 
+        system_prompt = WELLNESS_SYSTEM_INSTRUCTION
+        if user_context:
+            context_block = build_user_wellness_context(user_context)
+            if context_block:
+                system_prompt = f"{WELLNESS_SYSTEM_INSTRUCTION}\n\n{context_block}"
+
         config = types.GenerateContentConfig(
-            system_instruction=WELLNESS_SYSTEM_INSTRUCTION,
+            system_instruction=system_prompt,
             temperature=0.7,
             max_output_tokens=2500
         )
@@ -356,7 +486,7 @@ def generate_wellness_chat_reply(
 
         return {
             'success': True,
-            'reply': get_contextual_fallback_response(clean_message, history),
+            'reply': get_contextual_fallback_response(clean_message, history, user_context=user_context),
             'source': 'wellvia_local_assistant'
         }
 
@@ -365,7 +495,7 @@ def generate_wellness_chat_reply(
         logger.warning("Gemini provider error (%s); serving local wellness guidance.", type(e).__name__)
         return {
             'success': True,
-            'reply': get_contextual_fallback_response(clean_message, history),
+            'reply': get_contextual_fallback_response(clean_message, history, user_context=user_context),
             'source': 'wellvia_local_assistant'
         }
 

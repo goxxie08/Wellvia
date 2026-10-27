@@ -740,8 +740,7 @@ def api_chat_message():
     """
     Secure endpoint for the AI Wellness Chatbot using official google-genai SDK.
     Protects user secrets: GEMINI_API_KEY is read strictly from the server environment.
-    Validates input length and conversation history, enforces wellness boundaries,
-    and never attaches student physical or mood metrics.
+    Personalizes responses using the student's dashboard metrics and logged habits.
     """
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
@@ -762,6 +761,40 @@ def api_chat_message():
     if history is not None and not isinstance(history, list):
         return jsonify({'success': False, 'error': 'Conversation history must be a list if provided.'}), 400
 
-    chat_res = generate_wellness_chat_reply(message=user_msg, history=history)
+    # Retrieve real-time dashboard context for personalization
+    user_context = None
+    user_id = session.get('user_id')
+    if user_id:
+        try:
+            user = execute_query(
+                "SELECT id, username, email, total_points, height, weight, gender, bmi, bmi_category, ml_health_status, ml_lifestyle_risk FROM users WHERE id = %s",
+                (user_id,),
+                fetchone=True
+            )
+            if user:
+                today_record = get_today_record(user_id)
+                streak = calculate_current_streak(user_id)
+                user_context = {
+                    'username': user.get('username'),
+                    'height': user.get('height'),
+                    'weight': user.get('weight'),
+                    'gender': user.get('gender'),
+                    'bmi': user.get('bmi'),
+                    'bmi_category': user.get('bmi_category'),
+                    'ml_health_status': user.get('ml_health_status'),
+                    'ml_lifestyle_risk': user.get('ml_lifestyle_risk'),
+                    'total_points': user.get('total_points'),
+                    'today_record': today_record,
+                    'streak': streak,
+                }
+        except Exception:
+            # Graceful non-blocking fallback if context retrieval encounters an error
+            pass
+
+    chat_res = generate_wellness_chat_reply(
+        message=user_msg,
+        history=history,
+        user_context=user_context
+    )
     return jsonify(chat_res), 200
 

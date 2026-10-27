@@ -411,3 +411,50 @@ def test_chat_privacy_no_health_data_transmitted(auth_student_client, monkeypatc
         for private_field in ['bmi', 'weight', 'height', 'sleep_hours', 'mood', 'wellness_records']:
             assert private_field not in combined_text.lower()
 
+
+# -----------------------------------------------------------------------------
+# 10. Dashboard Data Personalization Tests
+# -----------------------------------------------------------------------------
+
+def test_chat_personalized_with_user_dashboard_data(auth_student_client, monkeypatch):
+    """
+    Ensures that when a logged-in student asks about their metrics (e.g., 'am i overweight'),
+    the system instruction contains their real-time dashboard data (height, weight, BMI),
+    and local fallback answers directly using their dashboard numbers.
+    """
+    from app.models.db import execute_query
+    with auth_student_client.application.app_context():
+        user = execute_query("SELECT height, weight, bmi FROM users WHERE id = 14", fetchone=True)
+    height_str = str(int(user['height'])) if user and user.get('height') else "168"
+    weight_str = str(int(user['weight'])) if user and user.get('weight') else "62"
+
+    monkeypatch.setenv('GEMINI_API_KEY', 'test_key_server_only')
+
+    mock_client = MagicMock()
+    mock_response = MagicMock()
+    mock_response.text = f"Based on your recorded height of {height_str} cm and weight of {weight_str} kg, your BMI is {user['bmi']}. You are in the normal weight range!"
+    mock_client.models.generate_content.return_value = mock_response
+
+    with patch('google.genai.Client', return_value=mock_client):
+        res = auth_student_client.post('/api/chat/message', json={
+            'message': 'am i overweight'
+        })
+        assert res.status_code == 200
+        call_kwargs = mock_client.models.generate_content.call_args.kwargs
+        sys_inst = call_kwargs['config'].system_instruction
+        assert height_str in sys_inst
+        assert weight_str in sys_inst
+
+    # Test fallback personalization when offline
+    with patch('app.services.chat_service.get_gemini_api_key', return_value=None):
+        res = auth_student_client.post('/api/chat/message', json={
+            'message': 'am i overweight'
+        })
+        assert res.status_code == 200
+        data = res.get_json()
+        assert data['success'] is True
+        assert height_str in data['reply']
+        assert weight_str in data['reply']
+        assert 'not overweight' in data['reply'].lower()
+
+
