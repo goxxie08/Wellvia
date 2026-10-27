@@ -263,3 +263,175 @@ function renderAdminCharts(analytics) {
         });
     }
 }
+
+/**
+ * Renders the 6 dedicated bar charts for the redesigned Progress page
+ */
+function renderStudentBarCharts(chartData) {
+    if (!chartData || !chartData.labels) return;
+
+    const baseOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { grid: { display: false } },
+            y: { beginAtZero: true }
+        }
+    };
+
+    // 1. Sleep Bar Chart
+    const elSleep = document.getElementById('chartSleepBar');
+    if (elSleep) {
+        new Chart(elSleep, {
+            type: 'bar',
+            data: {
+                labels: chartData.labels,
+                datasets: [{
+                    label: 'Sleep Hours',
+                    data: chartData.sleep || [],
+                    backgroundColor: 'rgba(139, 92, 246, 0.8)',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                ...baseOptions,
+                scales: {
+                    ...baseOptions.scales,
+                    y: { suggestedMax: 10, ticks: { callback: v => v + 'h' } }
+                }
+            }
+        });
+    }
+
+    // 2. Water Bar Chart
+    const elWater = document.getElementById('chartWaterBar');
+    if (elWater) {
+        new Chart(elWater, {
+            type: 'bar',
+            data: {
+                labels: chartData.labels,
+                datasets: [{
+                    label: 'Water Glasses',
+                    data: chartData.water || [],
+                    backgroundColor: 'rgba(14, 165, 233, 0.8)',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                ...baseOptions,
+                scales: {
+                    ...baseOptions.scales,
+                    y: { suggestedMax: 10, ticks: { callback: v => v + ' gl' } }
+                }
+            }
+        });
+    }
+
+    // 3. Exercise Bar Chart
+    const elEx = document.getElementById('chartExerciseBar');
+    if (elEx) {
+        new Chart(elEx, {
+            type: 'bar',
+            data: {
+                labels: chartData.labels,
+                datasets: [{
+                    label: 'Exercise (Minutes)',
+                    data: chartData.exercise || [],
+                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                ...baseOptions,
+                scales: {
+                    ...baseOptions.scales,
+                    y: { suggestedMax: 60, ticks: { callback: v => v + 'm' } }
+                }
+            }
+        });
+    }
+
+    // 4. Study Bar Chart
+    const elStudy = document.getElementById('chartStudyBar');
+    if (elStudy) {
+        new Chart(elStudy, {
+            type: 'bar',
+            data: {
+                labels: chartData.labels,
+                datasets: [{
+                    label: 'Study Hours',
+                    data: chartData.study || [],
+                    backgroundColor: 'rgba(245, 158, 11, 0.8)',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                ...baseOptions,
+                scales: {
+                    ...baseOptions.scales,
+                    y: { suggestedMax: 8, ticks: { callback: v => v + 'h' } }
+                }
+            }
+        });
+    }
+
+    // 5. Stress Level Bar Chart
+    const elStress = document.getElementById('chartStressBar');
+    if (elStress) {
+        new Chart(elStress, {
+            type: 'bar',
+            data: {
+                labels: chartData.labels,
+                datasets: [{
+                    label: 'Stress Rating (1-5)',
+                    data: chartData.stress || [],
+                    backgroundColor: 'rgba(244, 63, 94, 0.8)',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                ...baseOptions,
+                scales: {
+                    ...baseOptions.scales,
+                    y: { min: 1, max: 5, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+    }
+
+    // 6. Mood Categorical Bar Chart
+    const elMood = document.getElementById('chartMoodBar');
+    if (elMood) {
+        new Chart(elMood, {
+            type: 'bar',
+            data: {
+                labels: chartData.labels,
+                datasets: [{
+                    label: 'Mood Category',
+                    data: chartData.mood || [],
+                    backgroundColor: 'rgba(20, 184, 166, 0.8)',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                ...baseOptions,
+                scales: {
+                    ...baseOptions.scales,
+                    y: {
+                        min: 1,
+                        max: 5,
+                        ticks: {
+                            stepSize: 1,
+                            callback: v => {
+                                const map = { 1: 'Sad 😞', 2: 'Low 🙁', 3: 'Neutral 😐', 4: 'Good 🙂', 5: 'Great 😊' };
+                                return map[v] || v;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+

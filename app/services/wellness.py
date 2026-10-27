@@ -6,9 +6,10 @@ from app.services.gamification import add_user_points, calculate_current_streak,
 def get_today_record(user_id):
     """Retrieve today's wellness record for student."""
     today = date.today()
+    today_str = today.strftime('%Y-%m-%d')
     return execute_query(
-        "SELECT * FROM wellness_records WHERE user_id = %s AND record_date = %s",
-        (user_id, today),
+        "SELECT * FROM wellness_records WHERE user_id = %s AND (record_date = %s OR record_date = %s)",
+        (user_id, today, today_str),
         fetchone=True
     )
 
@@ -20,17 +21,33 @@ def log_daily_wellness(user_id, form_data):
     today = date.today()
     existing_record = get_today_record(user_id)
     
-    # Parse form inputs safely
-    sleep_hours = float(form_data.get('sleep_hours')) if form_data.get('sleep_hours') else None
-    sleep_quality = int(form_data.get('sleep_quality')) if form_data.get('sleep_quality') else None
-    water_glasses = int(form_data.get('water_glasses')) if form_data.get('water_glasses') else None
+    def _parse_float(val):
+        if val is not None and str(val).strip() != '':
+            try:
+                return float(val)
+            except (ValueError, TypeError):
+                return None
+        return None
+
+    def _parse_int(val):
+        if val is not None and str(val).strip() != '':
+            try:
+                return int(val)
+            except (ValueError, TypeError):
+                return None
+        return None
+
+    # Parse form inputs safely preserving 0 values
+    sleep_hours = _parse_float(form_data.get('sleep_hours'))
+    sleep_quality = _parse_int(form_data.get('sleep_quality'))
+    water_glasses = _parse_int(form_data.get('water_glasses'))
     exercise_type = form_data.get('exercise_type', '').strip() or None
-    exercise_duration = int(form_data.get('exercise_duration')) if form_data.get('exercise_duration') else None
+    exercise_duration = _parse_int(form_data.get('exercise_duration'))
     exercise_intensity = form_data.get('exercise_intensity', '').strip() or None
-    mood = int(form_data.get('mood')) if form_data.get('mood') else None
-    stress_level = int(form_data.get('stress_level')) if form_data.get('stress_level') else None
-    study_hours = float(form_data.get('study_hours')) if form_data.get('study_hours') else None
-    study_sessions = int(form_data.get('study_sessions')) if form_data.get('study_sessions') else None
+    mood = _parse_int(form_data.get('mood'))
+    stress_level = _parse_int(form_data.get('stress_level'))
+    study_hours = _parse_float(form_data.get('study_hours'))
+    study_sessions = _parse_int(form_data.get('study_sessions'))
     study_subject = form_data.get('study_subject', '').strip() or None
 
     record_dict = {

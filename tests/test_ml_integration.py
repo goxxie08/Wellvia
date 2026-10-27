@@ -159,7 +159,7 @@ def test_api_bmi_assess_invalid_input(student_auth_session):
     assert resp_empty.status_code == 400
 
 def test_body_metrics_get_page(student_auth_session):
-    resp = student_auth_session.get('/body-metrics')
+    resp = student_auth_session.get('/body-metrics?legacy=1')
     assert resp.status_code == 200
     html = resp.get_data(as_text=True)
     assert "Body Metrics & ML Health Assessment" in html
@@ -168,7 +168,7 @@ def test_body_metrics_get_page(student_auth_session):
     assert "Non-Medical Screening Notice" in html
 
 def test_body_metrics_post_and_history_persistence(app_instance, student_auth_session):
-    resp = student_auth_session.post('/body-metrics', data={
+    resp = student_auth_session.post('/body-metrics?legacy=1', data={
         'height': '174.0',
         'weight': '65.0',
         'gender': 'Female'
@@ -195,7 +195,7 @@ def test_body_metrics_post_and_history_persistence(app_instance, student_auth_se
         assert history['weight'] == 65.0
 
 def test_dashboard_renders_bmi_and_history(student_auth_session):
-    resp = student_auth_session.get('/dashboard')
+    resp = student_auth_session.get('/dashboard?legacy=1')
     assert resp.status_code == 200
     html = resp.get_data(as_text=True)
     assert "Body Metrics & ML" in html

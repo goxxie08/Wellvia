@@ -5,101 +5,228 @@
 {% block content %}
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
     <div>
-        <h2 class="fw-bold mb-1">My Wellness Trends & Progress</h2>
-        <p class="text-muted small mb-0">Visual data representations of your logged sleep, hydration, exercise, mood, stress, and study habits</p>
+        <h2 class="fw-bold mb-1"><i class="bi bi-graph-up text-teal me-2"></i>My Wellness Progress & Analytics</h2>
+        <p class="text-muted small mb-0">Personalized habit analysis, daily wellness metrics, and actionable areas to improve</p>
     </div>
     <!-- Timeframe Filter -->
     <div class="btn-group shadow-sm">
         <a href="{{ url_for('student.progress', days=7) }}" class="btn btn-sm {% if current_days == 7 %}btn-primary-gradient{% else %}btn-light{% endif %}">Past 7 Days</a>
+        <a href="{{ url_for('student.progress', days=14) }}" class="btn btn-sm {% if current_days == 14 %}btn-primary-gradient{% else %}btn-light{% endif %}">Past 14 Days</a>
         <a href="{{ url_for('student.progress', days=30) }}" class="btn btn-sm {% if current_days == 30 %}btn-primary-gradient{% else %}btn-light{% endif %}">Past 30 Days</a>
     </div>
 </div>
 
-<!-- Pattern Observations Card -->
-{% if insights %}
-    <div class="card card-custom p-4 mb-4 border-start border-4 border-info bg-light">
-        <h6 class="fw-bold text-dark mb-2"><i class="bi bi-compass me-2 text-info fs-5"></i> Pattern-Based Observations</h6>
-        <ul class="mb-0 small text-secondary">
-            {% for ins in insights %}
-                <li class="mb-1">{{ ins }}</li>
+<!-- ==========================================
+     SECTION 1: WELLNESS OVERVIEW
+     ========================================== -->
+<div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0 text-white"><i class="bi bi-calendar3 me-2 text-info"></i>Wellness Overview</h5>
+        <span class="badge bg-dark border text-muted">
+            {{ overview.date_range_label if overview else 'Past ' ~ current_days ~ ' Days' }} • {{ overview.logged_days_count if overview else 0 }} of {{ current_days }} days logged
+        </span>
+    </div>
+
+    {% if overview and overview.logged_days_count > 0 %}
+    <div class="row g-3">
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="card card-custom p-3 text-center h-100">
+                <small class="text-muted d-block mb-1">Avg Sleep</small>
+                <h5 class="fw-bold text-purple mb-0">{{ overview.sleep.avg ~ ' hrs' if overview.sleep.avg is not none else 'Not logged' }}</h5>
+                <small class="text-muted" style="font-size: 0.72rem;">Target: 7–9h</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="card card-custom p-3 text-center h-100">
+                <small class="text-muted d-block mb-1">Daily Water</small>
+                <h5 class="fw-bold text-info mb-0">{{ overview.water.avg ~ ' gl' if overview.water.avg is not none else 'Not logged' }}</h5>
+                <small class="text-muted" style="font-size: 0.72rem;">Target: 8 gl</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="card card-custom p-3 text-center h-100">
+                <small class="text-muted d-block mb-1">Physical Activity</small>
+                <h5 class="fw-bold text-success mb-0">{{ overview.exercise.avg ~ ' min' if overview.exercise.avg is not none else 'Not logged' }}</h5>
+                <small class="text-muted" style="font-size: 0.72rem;">Target: 30+m</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="card card-custom p-3 text-center h-100">
+                <small class="text-muted d-block mb-1">Study Time</small>
+                <h5 class="fw-bold text-warning mb-0">{{ overview.study.avg ~ ' hrs' if overview.study.avg is not none else 'Not logged' }}</h5>
+                <small class="text-muted" style="font-size: 0.72rem;">Daily avg</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="card card-custom p-3 text-center h-100">
+                <small class="text-muted d-block mb-1">Recent Mood</small>
+                <h5 class="fw-bold text-teal mb-0" style="font-size: 0.95rem;">{{ overview.mood.dominant if overview.mood.dominant else 'Not logged' }}</h5>
+                <small class="text-muted" style="font-size: 0.72rem;">Dominant state</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="card card-custom p-3 text-center h-100">
+                <small class="text-muted d-block mb-1">Stress Pattern</small>
+                <h5 class="fw-bold text-danger mb-0" style="font-size: 0.95rem;">{{ overview.stress.label if overview.stress.label else 'Not logged' }}</h5>
+                <small class="text-muted" style="font-size: 0.72rem;">{{ ('Avg ' ~ overview.stress.avg ~ '/5') if overview.stress.avg is not none else 'Scale 1-5' }}</small>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card card-custom p-4 text-center">
+        <p class="text-muted mb-2">No wellness records found for this period. Start tracking daily habits to view your progress averages.</p>
+        <div>
+            <a href="{{ url_for('student.wellness') }}" class="btn btn-sm btn-primary-gradient px-4 py-2 rounded-pill">Log Today's Wellness</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ==========================================
+     SECTION 2: DAILY WELLNESS CHARTS
+     ========================================== -->
+<div class="mb-4">
+    <h5 class="fw-bold mb-1 text-white"><i class="bi bi-bar-chart-line me-2 text-teal"></i>Daily Wellness Charts</h5>
+    <p class="text-muted small mb-3">Daily comparisons of your tracked habits. Missing records are left blank to preserve accuracy.</p>
+
+    <div class="row g-4">
+        <!-- Sleep Bar Chart -->
+        <div class="col-lg-6">
+            <div class="card card-custom p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0 text-white"><i class="bi bi-moon-stars text-purple me-2"></i>Sleep Duration</h6>
+                    <span class="badge bg-purple-subtle text-purple small">Unit: Hours (Goal: 7–9h)</span>
+                </div>
+                <div style="position: relative; height: 230px;">
+                    <canvas id="chartSleepBar"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Water Bar Chart -->
+        <div class="col-lg-6">
+            <div class="card card-custom p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0 text-white"><i class="bi bi-droplet text-info me-2"></i>Water Intake</h6>
+                    <span class="badge bg-info-subtle text-info small">Unit: Glasses (Goal: 8 gl)</span>
+                </div>
+                <div style="position: relative; height: 230px;">
+                    <canvas id="chartWaterBar"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Exercise Bar Chart -->
+        <div class="col-lg-6">
+            <div class="card card-custom p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0 text-white"><i class="bi bi-activity text-success me-2"></i>Physical Activity</h6>
+                    <span class="badge bg-success-subtle text-success small">Unit: Minutes (Goal: 30+m)</span>
+                </div>
+                <div style="position: relative; height: 230px;">
+                    <canvas id="chartExerciseBar"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Study Bar Chart -->
+        <div class="col-lg-6">
+            <div class="card card-custom p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0 text-white"><i class="bi bi-book text-warning me-2"></i>Academic Study Hours</h6>
+                    <span class="badge bg-warning-subtle text-warning small">Unit: Hours</span>
+                </div>
+                <div style="position: relative; height: 230px;">
+                    <canvas id="chartStudyBar"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stress Level Bar Chart -->
+        <div class="col-lg-6">
+            <div class="card card-custom p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0 text-white"><i class="bi bi-heart-pulse text-danger me-2"></i>Stress Rating</h6>
+                    <span class="badge bg-danger-subtle text-danger small">Scale: 1 (Calm) – 5 (Severe)</span>
+                </div>
+                <div style="position: relative; height: 230px;">
+                    <canvas id="chartStressBar"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mood Categorical Bar Chart -->
+        <div class="col-lg-6">
+            <div class="card card-custom p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0 text-white"><i class="bi bi-emoji-smile text-teal me-2"></i>Daily Mood State</h6>
+                    <span class="badge bg-teal-subtle text-teal small">Categorical: Sad to Great</span>
+                </div>
+                <div style="position: relative; height: 230px;">
+                    <canvas id="chartMoodBar"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     SECTION 3: YOUR WELLNESS ANALYSIS
+     ========================================== -->
+<div class="mb-4">
+    <h5 class="fw-bold mb-1 text-white"><i class="bi bi-stars me-2 text-warning"></i>Your Wellness Analysis</h5>
+    <p class="text-muted small mb-3">Observations and practical suggestions derived from your recent self-reported habits.</p>
+
+    <div class="row g-3">
+        {% if analysis %}
+            {% for item in analysis %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card card-custom p-3 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-bold mb-0 text-white">{{ item.title }}</h6>
+                            <span class="badge {% if item.status == 'good' %}bg-success-subtle text-success{% elif item.status == 'moderate' %}bg-info-subtle text-info{% elif item.status == 'needs_improvement' %}bg-danger-subtle text-danger{% else %}bg-secondary text-light{% endif %}" style="font-size: 0.7rem;">
+                                {% if item.status == 'good' %}On Track{% elif item.status == 'moderate' %}Moderate{% elif item.status == 'needs_improvement' %}Needs Focus{% else %}Needs Data{% endif %}
+                            </span>
+                        </div>
+                        <small class="text-muted d-block mb-2">{{ item.target_label }}</small>
+                        <p class="small text-secondary mb-3">{{ item.observation }}</p>
+                    </div>
+                    <div class="p-2 rounded bg-dark border small text-muted">
+                        <i class="bi bi-lightbulb text-warning me-1"></i>{{ item.recommendation }}
+                    </div>
+                </div>
+            </div>
             {% endfor %}
-        </ul>
-        <small class="text-muted mt-2 d-block" style="font-size: 0.75rem;">* Note: Observations are derived from your self-reported data for self-awareness and are not medical assessments.</small>
+        {% endif %}
     </div>
-{% endif %}
+</div>
 
-<!-- Charts Grid -->
-<div class="row g-4 mb-4">
-    <!-- Sleep vs Study Chart -->
-    <div class="col-lg-6">
-        <div class="card card-custom p-4 shadow-sm h-100">
-            <h6 class="fw-bold mb-3"><i class="bi bi-moon-stars me-2 text-teal"></i> Sleep & Study Hours</h6>
-            <div style="position: relative; height: 260px;">
-                <canvas id="chartSleepStudy"></canvas>
-            </div>
-        </div>
-    </div>
+<!-- ==========================================
+     SECTION 4: AREAS TO IMPROVE
+     ========================================== -->
+<div class="mb-5">
+    <h5 class="fw-bold mb-1 text-white"><i class="bi bi-bullseye me-2 text-danger"></i>Areas to Improve</h5>
+    <p class="text-muted small mb-3">Actionable habit focus areas prioritized from your recent records.</p>
 
-    <!-- Mood vs Stress Line Chart -->
-    <div class="col-lg-6">
-        <div class="card card-custom p-4 shadow-sm h-100">
-            <h6 class="fw-bold mb-3"><i class="bi bi-emoji-smile me-2 text-success"></i> Mood vs. Stress Trends</h6>
-            <div style="position: relative; height: 260px;">
-                <canvas id="chartMoodStress"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <!-- Wellness Score Trend Chart -->
-    <div class="col-lg-6">
-        <div class="card card-custom p-4 shadow-sm h-100">
-            <h6 class="fw-bold mb-3"><i class="bi bi-heart-pulse me-2 text-primary"></i> Daily Wellness Score History</h6>
-            <div style="position: relative; height: 260px;">
-                <canvas id="chartWellnessScore"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <!-- Habit Completion Rate Doughnut -->
-    <div class="col-lg-6">
-        <div class="card card-custom p-4 shadow-sm h-100">
-            <h6 class="fw-bold mb-3"><i class="bi bi-pie-chart me-2 text-warning"></i> Habit Logging Completion Rate</h6>
-            <div style="position: relative; height: 260px;">
-                <canvas id="chartHabitCompletion"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <!-- BMI & Weight Longitudinal Trend Chart -->
-    <div class="col-12">
-        <div class="card card-custom p-4 shadow-sm">
-            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-3 gap-2">
-                <div>
-                    <h6 class="fw-bold mb-1"><i class="bi bi-activity me-2 text-teal"></i> Body Metrics & BMI Longitudinal Trajectory</h6>
-                    <small class="text-muted">Track your body mass index, weight changes, and ML classification history over time</small>
+    <div class="d-flex flex-column gap-3">
+        {% if areas_to_improve %}
+            {% for area in areas_to_improve %}
+            <div class="card card-custom p-4 border-start border-4 {% if area.is_all_good %}border-success{% elif area.is_insufficient %}border-info{% else %}border-warning{% endif %}">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <h6 class="fw-bold mb-0 text-white"><i class="bi bi-check2-circle text-teal me-2"></i>{{ area.headline }}</h6>
+                    <span class="badge {% if area.is_all_good %}bg-success{% elif area.is_insufficient %}bg-info{% else %}bg-warning text-dark{% endif %}">
+                        {% if area.is_all_good %}Healthy Routine{% elif area.is_insufficient %}Getting Started{% else %}Priority #{{ area.priority }}{% endif %}
+                    </span>
                 </div>
-                <a href="{{ url_for('student.body_metrics') }}" class="btn btn-sm btn-outline-teal rounded-pill px-3 align-self-start align-self-sm-auto">
-                    <i class="bi bi-plus-circle me-1"></i> Update Metrics
-                </a>
+                <p class="small text-secondary mb-2">{{ area.reason }}</p>
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 p-2 rounded bg-dark border">
+                    <span class="small text-white"><strong>Next Step:</strong> {{ area.action_step }}</span>
+                    <a href="{{ url_for('student.wellness') }}" class="btn btn-xs btn-outline-teal rounded-pill px-3">Log Habit</a>
+                </div>
             </div>
-            {% if chart_data.bmi_history and chart_data.bmi_history.labels and chart_data.bmi_history.labels|length > 0 %}
-                <div style="position: relative; height: 300px;">
-                    <canvas id="chartBmiWeight"></canvas>
-                </div>
-                <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top text-muted small" style="font-size: 0.75rem;">
-                    <span><i class="bi bi-info-circle me-1 text-teal"></i> Green line: BMI (left axis) | Dashed purple line: Weight in kg (right axis)</span>
-                    <span>Total recorded checkpoints: <strong>{{ chart_data.bmi_history.labels|length }}</strong></span>
-                </div>
-            {% else %}
-                <div class="text-center py-5 bg-light rounded-3">
-                    <i class="bi bi-speedometer2 text-muted display-4 mb-2 d-block"></i>
-                    <p class="text-muted mb-3">No historical body metrics recorded yet.</p>
-                    <a href="{{ url_for('student.body_metrics') }}" class="btn btn-sm btn-primary-gradient px-4 py-2 rounded-pill">
-                        Record Your First BMI Assessment
-                    </a>
-                </div>
-            {% endif %}
-        </div>
+            {% endfor %}
+        {% endif %}
     </div>
 </div>
 {% endblock %}
@@ -109,7 +236,10 @@
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         const chartData = {{ chart_data | tojson }};
-        renderStudentCharts(chartData);
+        if (typeof renderStudentBarCharts === 'function') {
+            renderStudentBarCharts(chartData);
+        }
     });
 </script>
 {% endblock %}
+

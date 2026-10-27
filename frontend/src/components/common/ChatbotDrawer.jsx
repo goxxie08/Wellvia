@@ -4,13 +4,13 @@ import {
   Send, 
   X, 
   Sparkles, 
-  AlertCircle, 
   RotateCcw, 
   ShieldAlert, 
   Lightbulb, 
   RefreshCw 
 } from 'lucide-react';
 import { api } from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
 
 const INITIAL_WELCOME = {
   id: 'welcome-1',
@@ -28,31 +28,164 @@ const SUGGESTED_PROMPTS = [
   "How can I maintain healthy hydration during study sessions?"
 ];
 
+// Helper to format inline bold, italic, and clean text
+function formatInline(str) {
+  if (!str) return '';
+  const parts = str.split(/(\*\*[^*]+?\*\*)/g);
+  return parts.map((part, idx) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <strong key={idx} style={{ color: 'var(--teal-primary)', fontWeight: 600 }}>
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if ((part.startsWith('*') && part.endsWith('*')) || (part.startsWith('_') && part.endsWith('_'))) {
+      return <em key={idx}>{part.slice(1, -1)}</em>;
+    }
+    return part;
+  });
+}
+
+// Helper to format multi-paragraph and list message content
+function formatChatMessage(text) {
+  if (!text) return null;
+
+  // Split into paragraphs by double newlines
+  const paragraphs = text.split(/\n\s*\n/);
+
+  return paragraphs.map((para, pIdx) => {
+    const lines = para.split('\n').filter((l) => l.trim().length > 0);
+    const isBulletList = lines.length > 0 && lines.every((line) => line.trim().startsWith('* ') || line.trim().startsWith('- '));
+    const isNumberedList = lines.length > 0 && lines.every((line) => /^\d+[.)]\s/.test(line.trim()));
+
+    if (isBulletList) {
+      return (
+        <ul key={pIdx} className="chat-msg-list">
+          {lines.map((line, lIdx) => {
+            const content = line.trim().replace(/^[*\-]\s+/, '');
+            return <li key={lIdx}>{formatInline(content)}</li>;
+          })}
+        </ul>
+      );
+    }
+
+    if (isNumberedList) {
+      return (
+        <ol key={pIdx} className="chat-msg-list numbered">
+          {lines.map((line, lIdx) => {
+            const content = line.trim().replace(/^\d+[.)]\s+/, '');
+            return <li key={lIdx}>{formatInline(content)}</li>;
+          })}
+        </ol>
+      );
+    }
+
+    return (
+      <p key={pIdx} className="chat-msg-para">
+        {lines.map((line, lIdx) => (
+          <React.Fragment key={lIdx}>
+            {formatInline(line)}
+            {lIdx < lines.length - 1 && <br />}
+          </React.Fragment>
+        ))}
+      </p>
+    );
+  });
+}
+
 export function ChatbotDrawer({ isOpen, onClose, onToggle }) {
-  const [messages, setMessages] = useState([INITIAL_WELCOME]);
+  const { user } = useAuth();
+  const getStorageKey = (u) => `wellvia_chat_history_${u?.id || 'guest'}`;
+
+  const [messages, setMessages] = useState(() => {
+    try {
+      const saved = localStorage.getItem(getStorageKey(user));
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load chat messages from storage', e);
+    }
+    return [INITIAL_WELCOME];
+  });
+
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPrompts, setShowPrompts] = useState(true);
   const [lastFailedMessage, setLastFailedMessage] = useState(null);
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  // Sync to localStorage on update
+  useEffect(() => {
+    if (messages && messages.length > 0) {
+      try {
+        localStorage.setItem(getStorageKey(user), JSON.stringify(messages));
+      } catch (e) {
+        console.warn('Could not save chat messages to storage', e);
+      }
+    }
+  }, [messages, user?.id]);
+
+  // Reload history when active user account changes
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(getStorageKey(user));
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Could not reload chat messages on account change', e);
+    }
+    setMessages([INITIAL_WELCOME]);
+  }, [user?.id]);
+
+  const scrollToBottom = (behavior = 'smooth') => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior
+      });
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior });
+    }
   };
 
   useEffect(() => {
     if (isOpen) {
-      scrollToBottom();
-      // Auto-focus input when opened
-      setTimeout(() => inputRef.current?.focus(), 150);
+      scrollToBottom('smooth');
+      const timer = setTimeout(() => inputRef.current?.focus(), 150);
+      return () => clearTimeout(timer);
     }
   }, [messages, isOpen, loading]);
 
   // Format history according to backend contract: list of { role: 'user'|'model', text: '...' }
-  const buildHistoryPayload = (currentMessages) => {
+  const buildHistoryPayload = (currentMessages, currentMsgText = '') => {
     return currentMessages
-      .filter((m) => m.id !== 'welcome-1' && !m.isError && m.text)
+      .filter((m) => 
+        m.source !== 'welcome' &&
+        !String(m.id || '').startsWith('welcome') &&
+        !m.isError &&
+        !m.isCrisis &&
+        m.text &&
+        (m.sender === 'user' || m.sender === 'bot')
+      )
+      // Exclude trailing user message if it matches currentMsgText (e.g. from retry)
+      .filter((m, idx, arr) => {
+        if (idx === arr.length - 1 && m.sender === 'user' && m.text.trim() === currentMsgText?.trim()) {
+          return false;
+        }
+        return true;
+      })
       .slice(-10) // Limit to 10 most recent turns per server limit
       .map((m) => ({
         role: m.sender === 'user' ? 'user' : 'model',
@@ -80,9 +213,17 @@ export function ChatbotDrawer({ isOpen, onClose, onToggle }) {
     };
 
     // Calculate history before appending new user message
-    const historyPayload = buildHistoryPayload(messages);
+    const historyPayload = buildHistoryPayload(messages, messageToSend);
 
-    setMessages((prev) => [...prev, userMsg]);
+    // If retrying, remove previous error message and previous duplicate user message if present
+    setMessages((prev) => {
+      const nonError = prev.filter((m) => !m.isError);
+      if (nonError.length > 0 && nonError[nonError.length - 1].sender === 'user' && nonError[nonError.length - 1].text.trim() === messageToSend) {
+        return [...nonError.slice(0, -1), userMsg];
+      }
+      return [...nonError, userMsg];
+    });
+
     setInput('');
     setLoading(true);
     setLastFailedMessage(null);
@@ -124,18 +265,22 @@ export function ChatbotDrawer({ isOpen, onClose, onToggle }) {
   const handleRetry = () => {
     if (!lastFailedMessage) return;
     const { text } = lastFailedMessage;
-    // Remove the trailing error message
-    setMessages((prev) => prev.filter((m) => !m.isError));
     handleSend(null, text);
   };
 
   const handleClearConversation = () => {
     if (window.confirm("Start a new conversation? Prior chat history will be cleared.")) {
-      setMessages([{
+      const resetMsg = [{
         ...INITIAL_WELCOME,
         id: `welcome-${Date.now()}`,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }]);
+      }];
+      setMessages(resetMsg);
+      try {
+        localStorage.removeItem(getStorageKey(user));
+      } catch (e) {
+        console.warn('Could not clear storage', e);
+      }
       setInput('');
       setLastFailedMessage(null);
       setShowPrompts(true);
@@ -220,7 +365,7 @@ export function ChatbotDrawer({ isOpen, onClose, onToggle }) {
       </div>
 
       {/* Messages Scroll Area */}
-      <div className="chat-messages" id="chatMessagesContainer">
+      <div className="chat-messages" id="chatMessagesContainer" ref={messagesContainerRef}>
         {messages.map((m) => (
           <div
             key={m.id}
@@ -233,7 +378,7 @@ export function ChatbotDrawer({ isOpen, onClose, onToggle }) {
               </div>
             )}
 
-            <div style={{ whiteSpace: 'pre-line' }}>{m.text}</div>
+            <div className="chat-bubble-content">{formatChatMessage(m.text)}</div>
 
             {/* Error Retry Option */}
             {m.isError && lastFailedMessage && (

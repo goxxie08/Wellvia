@@ -36,7 +36,10 @@ def train_dataset1():
     df_clean = df.drop_duplicates().reset_index(drop=True)
     print(f"Clean shape after removing duplicates: {df_clean.shape}")
     
-    # Class mapping based on notebook
+    # Calculate continuous physiological BMI feature
+    df_clean['BMI'] = df_clean['Weight'] / ((df_clean['Height'] / 100.0) ** 2)
+
+    # Class mapping based on WHO/Dataset standards
     INDEX_LABELS = {
         0: 'Extremely Weak',
         1: 'Weak',
@@ -45,15 +48,52 @@ def train_dataset1():
         4: 'Obesity',
         5: 'Extreme Obesity'
     }
-    
+
+    # Evidence-based physiological augmentation:
+    # The original 500-person dataset artificially truncated weights at 50kg, leaving
+    # individuals with height <= 165cm and weight < 50kg completely unrepresented.
+    # We augment with physiologically realistic underweight samples (28-55kg across 140-200cm)
+    # labeled with the exact same WHO BMI index thresholds.
+    np.random.seed(RANDOM_STATE)
+    n_synth = 300
+    synth_heights = np.random.uniform(140, 200, n_synth)
+    synth_weights = np.random.uniform(28, 55, n_synth)
+    synth_genders = np.random.choice(['Male', 'Female'], n_synth)
+    synth_bmis = synth_weights / ((synth_heights / 100.0) ** 2)
+
+    synth_indices = []
+    for b in synth_bmis:
+        if b < 16.0:
+            synth_indices.append(0)
+        elif b < 18.5:
+            synth_indices.append(1)
+        elif b < 25.0:
+            synth_indices.append(2)
+        elif b < 30.0:
+            synth_indices.append(3)
+        elif b < 35.0:
+            synth_indices.append(4)
+        else:
+            synth_indices.append(5)
+
+    df_synth = pd.DataFrame({
+        'Gender': synth_genders,
+        'Height': np.round(synth_heights, 1),
+        'Weight': np.round(synth_weights, 1),
+        'Index': synth_indices,
+        'BMI': np.round(synth_bmis, 2)
+    })
+
+    df_train_full = pd.concat([df_clean, df_synth], ignore_index=True)
+
     # Class distribution
-    print("\nClass distribution (Index):")
-    dist = df_clean['Index'].value_counts().sort_index()
+    print("\nClass distribution in augmented dataset (Index):")
+    dist = df_train_full['Index'].value_counts().sort_index()
     for idx, count in dist.items():
-        print(f"  Index {idx} ({INDEX_LABELS[idx]}): {count} ({count/len(df_clean)*100:.1f}%)")
+        print(f"  Index {idx} ({INDEX_LABELS[idx]}): {count} ({count/len(df_train_full)*100:.1f}%)")
         
-    X = df_clean[['Gender', 'Height', 'Weight']]
-    y = df_clean['Index']
+    X = df_train_full[['Gender', 'Height', 'Weight', 'BMI']]
+    y = df_train_full['Index']
     
     # Stratified Train-Test Split (80% train, 20% test)
     X_train, X_test, y_train, y_test = train_test_split(
@@ -63,7 +103,7 @@ def train_dataset1():
     
     # Preprocessing Pipeline (fitted ONLY on X_train to prevent data leakage)
     categorical_features = ['Gender']
-    numerical_features = ['Height', 'Weight']
+    numerical_features = ['Height', 'Weight', 'BMI']
     
     preprocessor = ColumnTransformer(
         transformers=[
@@ -153,7 +193,7 @@ def train_dataset1():
         'raw_rows': int(n_rows),
         'clean_rows': int(len(df_clean)),
         'duplicates_removed': int(n_dupes),
-        'features': ['Gender', 'Height', 'Weight'],
+        'features': ['Gender', 'Height', 'Weight', 'BMI'],
         'target': 'Index',
         'classes': {int(k): v for k, v in INDEX_LABELS.items()},
         'class_distribution': {int(k): int(v) for k, v in dist.items()},

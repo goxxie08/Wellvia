@@ -81,6 +81,31 @@ def test_model_1_loading_and_prediction():
     assert len(pred['suggestions']) > 0
     assert 'Disclaimer' in pred['disclaimer']
 
+def test_model_1_severe_underweight_bmi_14_13():
+    """
+    REGRESSION TEST:
+    Verify that Model 1 classifies severely underweight body metrics (BMI ~14.13)
+    as 'Extremely Weak' (Index 0), resolving the bug where it falsely predicted 'Normal'.
+    """
+    # Profile 1: Height 160 cm, Weight 36.2 kg -> BMI 14.14
+    pred_160 = predict_health_status(gender='Female', height_cm=160, weight_kg=36.2)
+    assert pred_160['success'] is True
+    assert pred_160['predicted_label'] == 'Extremely Weak'
+    assert pred_160['predicted_index'] == 0
+    assert pred_160['predicted_label'] != 'Normal'
+
+    # Profile 2: Height 170 cm, Weight 40.8 kg -> BMI 14.12
+    pred_170 = predict_health_status(gender='Male', height_cm=170, weight_kg=40.8)
+    assert pred_170['success'] is True
+    assert pred_170['predicted_label'] == 'Extremely Weak'
+    assert pred_170['predicted_index'] == 0
+
+    # Profile 3: Height 175 cm, Weight 43.3 kg -> BMI 14.14
+    pred_175 = predict_health_status(gender='Female', height_cm=175, weight_kg=43.3)
+    assert pred_175['success'] is True
+    assert pred_175['predicted_label'] == 'Extremely Weak'
+    assert pred_175['predicted_index'] == 0
+
 def test_model_2_loading_and_prediction():
     model = get_model_2()
     assert model is not None

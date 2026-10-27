@@ -79,3 +79,32 @@ def test_calculate_wellness_score_insufficient_data():
     }
     score = calculate_wellness_score(record)
     assert score is None  # < 2 components returns None
+
+def test_calculate_current_streak_dual_db(monkeypatch):
+    """Verify streak calculation handles both SQLite strings and MySQL date objects."""
+    from datetime import date, timedelta
+    from unittest.mock import patch
+    from app import create_app
+    from app.services.gamification import calculate_current_streak
+
+    app = create_app('development')
+    today = date.today()
+
+    # 1. SQLite string dates
+    mock_sqlite = [{'record_date': (today - timedelta(days=i)).strftime('%Y-%m-%d')} for i in range(3)]
+    with app.app_context(), patch('app.services.gamification.execute_query', return_value=mock_sqlite):
+        streak_sqlite = calculate_current_streak(1)
+        assert streak_sqlite == 3
+
+    # 2. MySQL date objects
+    mock_mysql = [{'record_date': (today - timedelta(days=i))} for i in range(4)]
+    with app.app_context(), patch('app.services.gamification.execute_query', return_value=mock_mysql):
+        streak_mysql = calculate_current_streak(1)
+        assert streak_mysql == 4
+
+    # 3. Broken streak
+    mock_broken = [{'record_date': (today - timedelta(days=3)).strftime('%Y-%m-%d')}]
+    with app.app_context(), patch('app.services.gamification.execute_query', return_value=mock_broken):
+        streak_broken = calculate_current_streak(1)
+        assert streak_broken == 0
+

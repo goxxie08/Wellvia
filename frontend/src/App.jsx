@@ -4,7 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { Navbar } from './components/common/Navbar';
 import { Footer } from './components/common/Footer';
-import { MascotBarnaby } from './components/common/MascotBarnaby';
+import { FloatingChatButton } from './components/common/FloatingChatButton';
 import { ChatbotDrawer } from './components/common/ChatbotDrawer';
 
 // Auth Pages
@@ -82,7 +82,7 @@ function MainLayout() {
         </Routes>
       </main>
 
-      {/* Interactive Mascot Barnaby & AI Chatbot for logged-in students */}
+      {/* AI Chatbot & Floating Action Button for logged-in students */}
       {isAuthenticated && isStudent && (
         <>
           <ChatbotDrawer
@@ -90,9 +90,9 @@ function MainLayout() {
             onClose={() => setChatOpen(false)}
             onToggle={() => setChatOpen((prev) => !prev)}
           />
-          <MascotBarnaby
-            onOpenChat={() => setChatOpen((prev) => !prev)}
-            isChatOpen={chatOpen}
+          <FloatingChatButton
+            isOpen={chatOpen}
+            onToggle={() => setChatOpen((prev) => !prev)}
           />
         </>
       )}

@@ -35,8 +35,21 @@ def calculate_current_streak(user_id):
     if not records:
         return 0
         
-    logged_dates = {r['record_date'] for r in records}
-    
+    logged_dates = set()
+    for r in records:
+        d = r.get('record_date')
+        if not d:
+            continue
+        if isinstance(d, datetime):
+            logged_dates.add(d.date())
+        elif isinstance(d, date):
+            logged_dates.add(d)
+        elif isinstance(d, str):
+            try:
+                logged_dates.add(datetime.strptime(d[:10], '%Y-%m-%d').date())
+            except (ValueError, TypeError):
+                continue
+
     # Determine starting date for loop
     if today in logged_dates:
         curr = today

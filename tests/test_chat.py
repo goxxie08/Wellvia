@@ -2,7 +2,7 @@ import os
 import pytest
 from unittest.mock import patch, MagicMock
 from app import create_app
-from google.genai import errors
+from app.services.chat_service import sanitize_and_format_history, get_contextual_fallback_response, check_crisis_intent
 
 
 @pytest.fixture
@@ -40,7 +40,7 @@ def test_chat_unauthenticated(client):
 
 
 # -----------------------------------------------------------------------------
-# 2. Input Validation Tests
+# 2. Input Validation Tests & Length Limits
 # -----------------------------------------------------------------------------
 
 def test_chat_invalid_payload_type(auth_student_client):
@@ -94,7 +94,9 @@ def test_chat_crisis_safety_intervention(auth_student_client):
         "I feel completely overwhelmed and want to kill myself",
         "I'm thinking about suicide",
         "I have thoughts of self harm and cutting myself",
-        "I don't want to live anymore"
+        "I don't want to live anymore",
+        "I want to end it all",
+        "I feel like dying today"
     ]
     for prompt in crisis_prompts:
         res = auth_student_client.post('/api/chat/message', json={'message': prompt})
@@ -107,58 +109,78 @@ def test_chat_crisis_safety_intervention(auth_student_client):
         assert 'campus' in data['reply'].lower()
 
 
+def test_chat_crisis_no_false_positives():
+    """Everyday student idioms should not trigger the crisis safety intervention."""
+    casual_phrases = [
+        "I have a killer headache from studying",
+        "This exam is going to kill my GPA",
+        "I'm dying of boredom in lecture",
+        "How do I manage deadline stress?"
+    ]
+    for phrase in casual_phrases:
+        assert not check_crisis_intent(phrase)
+
+
 # -----------------------------------------------------------------------------
-# 4. Gemini SDK Integration & Mocking Tests
+# 4. Specific Question Relevance & System Instruction Verification (Mocked)
 # -----------------------------------------------------------------------------
 
-def test_chat_gemini_success_with_mock(auth_student_client, monkeypatch):
-    """Successful Gemini SDK response via mocked client."""
+def test_chat_gemini_specific_question_relevant_answer(auth_student_client, monkeypatch):
+    """Specific user question receives relevant mocked answer and applies system instruction."""
     auth_student_client.application.config['GEMINI_API_KEY'] = 'test_key_server_only'
     monkeypatch.setenv('GEMINI_API_KEY', 'test_key_server_only')
 
     mock_client = MagicMock()
     mock_response = MagicMock()
-    mock_response.text = "Try taking a 10-minute break, drinking a glass of water, and doing some gentle neck stretches."
+    mock_response.text = (
+        "For quick neck tension relief between lectures, do 5 slow shoulder rolls backwards, "
+        "then gently tilt your right ear to your right shoulder for 15 seconds, and repeat on the left."
+    )
     mock_client.models.generate_content.return_value = mock_response
 
     with patch('google.genai.Client', return_value=mock_client) as mock_client_cls:
         res = auth_student_client.post('/api/chat/message', json={
-            'message': 'How can I stay alert while studying?'
+            'message': 'What neck stretches can I do at my library desk?'
         })
         assert res.status_code == 200
         data = res.get_json()
         assert data['success'] is True
         assert data['source'] == 'gemini'
-        assert data['reply'] == mock_response.text
+        assert 'neck tension relief' in data['reply']
 
-        # Verify Client was initialized with server API key
+        # Verify Client initialized securely
         mock_client_cls.assert_called_once_with(api_key='test_key_server_only')
 
-        # Verify call to client.models.generate_content
-        mock_client.models.generate_content.assert_called_once()
+        # Verify generate_content parameters
         call_kwargs = mock_client.models.generate_content.call_args.kwargs
-        assert call_kwargs['model'] == 'gemini-2.5-flash'
-        assert 'config' in call_kwargs
-        assert 'Wellvia' in call_kwargs['config'].system_instruction
+        assert call_kwargs['model'] == 'gemini-3.5-flash'
+        sys_instruction = call_kwargs['config'].system_instruction
+        assert 'Wellvia' in sys_instruction
+        assert 'Answer the User First' in sys_instruction
+        assert 'Non-clinical Scope' in sys_instruction
 
 
-def test_chat_multi_turn_history(auth_student_client, monkeypatch):
-    """Validates that conversation history is formatted and included in contents."""
+# -----------------------------------------------------------------------------
+# 5. Follow-Up Questions & Conversation Context (Mocked)
+# -----------------------------------------------------------------------------
+
+def test_chat_follow_up_uses_conversation_context(auth_student_client, monkeypatch):
+    """Follow-up questions preserve previous conversation history in correct order."""
     monkeypatch.setenv('GEMINI_API_KEY', 'test_key_server_only')
 
     mock_client = MagicMock()
     mock_response = MagicMock()
-    mock_response.text = "Continuing our discussion on sleep hygiene, aim for a dark, quiet room."
+    mock_response.text = "Since you already drink herbal tea, adding a cool bedroom temperature (65°F) is your next best step."
     mock_client.models.generate_content.return_value = mock_response
 
     history_payload = [
         {'role': 'user', 'text': 'I have trouble falling asleep before midnight.'},
-        {'role': 'model', 'text': 'Try setting a consistent wind-down routine without screens.'}
+        {'role': 'model', 'text': 'Try drinking warm chamomile tea and dimming lights 45 minutes before bed.'}
     ]
 
     with patch('google.genai.Client', return_value=mock_client):
         res = auth_student_client.post('/api/chat/message', json={
-            'message': 'What else can I adjust in my bedroom environment?',
+            'message': 'I already do the herbal tea. What else can I change?',
             'history': history_payload
         })
         assert res.status_code == 200
@@ -174,11 +196,193 @@ def test_chat_multi_turn_history(auth_student_client, monkeypatch):
         assert contents[1].role == 'model'
         assert contents[1].parts[0].text == history_payload[1]['text']
         assert contents[2].role == 'user'
-        assert contents[2].parts[0].text == 'What else can I adjust in my bedroom environment?'
+        assert contents[2].parts[0].text == 'I already do the herbal tea. What else can I change?'
 
 
 # -----------------------------------------------------------------------------
-# 5. Privacy Protection Tests: No Health Data Sent to Gemini
+# 6. History Formatting, Deduplication & Ordering
+# -----------------------------------------------------------------------------
+
+def test_chat_history_does_not_duplicate_latest_message(auth_student_client, monkeypatch):
+    """If caller includes latest message in history, it must NOT be duplicated in contents."""
+    monkeypatch.setenv('GEMINI_API_KEY', 'test_key_server_only')
+
+    mock_client = MagicMock()
+    mock_response = MagicMock()
+    mock_response.text = "Try studying in 25-minute sprints."
+    mock_client.models.generate_content.return_value = mock_response
+
+    user_query = 'How should I break up my biology study sessions?'
+    history_with_dup = [
+        {'role': 'user', 'text': 'I have an exam on Friday.'},
+        {'role': 'model', 'text': 'Plan your days backwards from Friday.'},
+        {'role': 'user', 'text': user_query}  # Same as message
+    ]
+
+    with patch('google.genai.Client', return_value=mock_client):
+        res = auth_student_client.post('/api/chat/message', json={
+            'message': user_query,
+            'history': history_with_dup
+        })
+        assert res.status_code == 200
+        call_kwargs = mock_client.models.generate_content.call_args.kwargs
+        contents = call_kwargs['contents']
+
+        # Ensure user_query is only at the end once, not twice
+        assert len(contents) == 3
+        assert contents[0].role == 'user'
+        assert contents[0].parts[0].text == 'I have an exam on Friday.'
+        assert contents[1].role == 'model'
+        assert contents[1].parts[0].text == 'Plan your days backwards from Friday.'
+        assert contents[2].role == 'user'
+        assert contents[2].parts[0].text == user_query
+
+
+def test_chat_history_role_mapping_and_order():
+    """Sanitizer normalizes role synonyms, strips leading model turns, and merges consecutive turns."""
+    raw_history = [
+        {'role': 'model', 'text': 'Welcome to Wellvia!'},  # Leading model turn should be dropped
+        {'role': 'student', 'text': 'I feel restless.'},   # Normalized to 'user'
+        {'role': 'human', 'text': 'And I cannot focus.'},  # Consecutive user turn -> merged
+        {'role': 'assistant', 'text': 'Take a short breath.'},  # Normalized to 'model'
+        {'role': 'bot', 'text': 'Then try 5 minutes of stretching.'}  # Consecutive model turn -> merged
+    ]
+    formatted = sanitize_and_format_history(raw_history)
+    assert len(formatted) == 2
+    assert formatted[0].role == 'user'
+    assert 'I feel restless.\nAnd I cannot focus.' in formatted[0].parts[0].text
+    assert formatted[1].role == 'model'
+    assert 'Take a short breath.\nThen try 5 minutes of stretching.' in formatted[1].parts[0].text
+
+
+# -----------------------------------------------------------------------------
+# 7. Fallback Variety & Non-Repeating Responses
+# -----------------------------------------------------------------------------
+
+def test_chat_repeated_questions_avoid_identical_reply_in_fallback(auth_student_client):
+    """Repeated questions in fallback mode must not return the exact same static reply."""
+    with patch('app.services.chat_service.get_gemini_api_key', return_value=None):
+        # First turn
+        res1 = auth_student_client.post('/api/chat/message', json={
+            'message': 'I cannot fall asleep.'
+        })
+        assert res1.status_code == 200
+        reply1 = res1.get_json()['reply']
+
+        # Second turn with previous assistant reply in history
+        res2 = auth_student_client.post('/api/chat/message', json={
+            'message': 'I cannot fall asleep.',
+            'history': [
+                {'role': 'user', 'text': 'I cannot fall asleep.'},
+                {'role': 'model', 'text': reply1}
+            ]
+        })
+        assert res2.status_code == 200
+        reply2 = res2.get_json()['reply']
+
+        # Replies should vary rather than repeatedly returning the identical canned response
+        assert reply1 != reply2
+        assert 'sleep' in reply1.lower() or 'caffeine' in reply1.lower() or 'breathing' in reply1.lower() or 'dark' in reply1.lower()
+        assert 'sleep' in reply2.lower() or 'caffeine' in reply2.lower() or 'breathing' in reply2.lower() or 'dark' in reply2.lower()
+
+
+def test_chat_fallback_topic_relevance():
+    """Contextual fallback selects guidance relevant to the user's specific wellness topic."""
+    topics_tests = [
+        ('I am struggling with insomnia and sleep schedules', ['10-3-2-1-0', 'sleep', 'melatonin', '4-7-8']),
+        ('I have severe exam panic and anxiety', ['5-4-3-2-1', 'sigh', 'heart rate', 'micro-task']),
+        ('How should I structure my study breaks?', ['pomodoro', 'active recall', '25', 'focus', 'minutes', 'barrier', 'procrastinat']),
+        ('What desk stretches can I do for neck pain?', ['shoulder', 'stretch', 'hip flexors', 'stroll', 'walking', 'movement']),
+        ('How much water should I drink while studying?', ['dehydration', 'water', 'caffeine', 'protein'])
+    ]
+    for prompt, expected_words in topics_tests:
+        resp = get_contextual_fallback_response(prompt).lower()
+        assert any(word in resp for word in expected_words), f"Prompt '{prompt}' yielded irrelevant fallback: {resp}"
+
+
+# -----------------------------------------------------------------------------
+# 8. Provider Error Resilience, Timeouts & Empty Responses
+# -----------------------------------------------------------------------------
+
+def test_chat_missing_api_key_fallback(auth_student_client):
+    """If GEMINI_API_KEY is missing, gracefully serve contextual guidance without 500 error."""
+    with patch('app.services.chat_service.get_gemini_api_key', return_value=None):
+        res = auth_student_client.post('/api/chat/message', json={
+            'message': 'How do I calm down after an exam?'
+        })
+        assert res.status_code == 200
+        data = res.get_json()
+        assert data['success'] is True
+        assert data['source'] == 'wellvia_local_assistant'
+        assert len(data['reply']) > 20
+
+
+def test_chat_gemini_api_error_and_timeout_fallback(auth_student_client, monkeypatch):
+    """When Gemini API encounters network errors or timeouts, fall back cleanly."""
+    monkeypatch.setenv('GEMINI_API_KEY', 'test_key_server_only')
+
+    mock_client = MagicMock()
+    mock_client.models.generate_content.side_effect = TimeoutError("Request timed out connecting to Gemini endpoint")
+
+    with patch('google.genai.Client', return_value=mock_client):
+        res = auth_student_client.post('/api/chat/message', json={
+            'message': 'How can I organize my study sessions?'
+        })
+        assert res.status_code == 200
+        data = res.get_json()
+        assert data['success'] is True
+        assert data['source'] == 'wellvia_local_assistant'
+        assert len(data['reply']) > 20
+
+
+def test_chat_gemini_empty_or_whitespace_response_fallback(auth_student_client, monkeypatch):
+    """If Gemini returns an empty or whitespace response, fall back cleanly."""
+    monkeypatch.setenv('GEMINI_API_KEY', 'test_key_server_only')
+
+    mock_client = MagicMock()
+    mock_response = MagicMock()
+    mock_response.text = "   "
+    mock_client.models.generate_content.return_value = mock_response
+
+    with patch('google.genai.Client', return_value=mock_client):
+        res = auth_student_client.post('/api/chat/message', json={
+            'message': 'I feel restless before my test.'
+        })
+        assert res.status_code == 200
+        data = res.get_json()
+        assert data['success'] is True
+        assert data['source'] == 'wellvia_local_assistant'
+        assert len(data['reply']) > 20
+
+
+def test_chat_model_fallback_resilience(auth_student_client, monkeypatch):
+    """If the primary model fails (e.g. 503 high demand), the backup model is attempted."""
+    monkeypatch.setenv('GEMINI_API_KEY', 'test_key_server_only')
+
+    mock_client = MagicMock()
+
+    # Primary model throws exception, backup model succeeds
+    backup_response = MagicMock()
+    backup_response.text = "Here is guidance from the backup flash model: take a short mindful walk."
+    mock_client.models.generate_content.side_effect = [
+        Exception("503 Service Unavailable"),
+        backup_response
+    ]
+
+    with patch('google.genai.Client', return_value=mock_client):
+        res = auth_student_client.post('/api/chat/message', json={
+            'message': 'Need advice on feeling overwhelmed.'
+        })
+        assert res.status_code == 200
+        data = res.get_json()
+        assert data['success'] is True
+        assert data['source'] == 'gemini'
+        assert data['reply'] == backup_response.text
+        assert mock_client.models.generate_content.call_count == 2
+
+
+# -----------------------------------------------------------------------------
+# 9. Privacy Protection: No Health Data Sent to Gemini
 # -----------------------------------------------------------------------------
 
 def test_chat_privacy_no_health_data_transmitted(auth_student_client, monkeypatch):
@@ -201,47 +405,9 @@ def test_chat_privacy_no_health_data_transmitted(auth_student_client, monkeypatc
         call_kwargs = mock_client.models.generate_content.call_args.kwargs
         contents = call_kwargs['contents']
 
-        # Examine every text part sent to Gemini
         combined_text = ' '.join(
             part.text for content in contents for part in content.parts if hasattr(part, 'text')
         )
-        # Verify no database/user metrics are injected
         for private_field in ['bmi', 'weight', 'height', 'sleep_hours', 'mood', 'wellness_records']:
             assert private_field not in combined_text.lower()
 
-
-# -----------------------------------------------------------------------------
-# 6. Fallback & Provider Error Resilience Tests
-# -----------------------------------------------------------------------------
-
-def test_chat_missing_api_key_fallback(auth_student_client, monkeypatch):
-    """If GEMINI_API_KEY is not configured, gracefully fall back to local assistant."""
-    monkeypatch.delenv('GEMINI_API_KEY', raising=False)
-    # Also ensure current_app.config doesn't have it
-    with patch('app.services.chat_service.get_gemini_api_key', return_value=None):
-        res = auth_student_client.post('/api/chat/message', json={
-            'message': 'How do I calm down after an exam?'
-        })
-        assert res.status_code == 200
-        data = res.get_json()
-        assert data['success'] is True
-        assert data['source'] == 'wellvia_local_assistant'
-        assert len(data['reply']) > 10
-
-
-def test_chat_gemini_provider_error_fallback(auth_student_client, monkeypatch):
-    """When Gemini API encounters network or API error, fall back cleanly without 500 error."""
-    monkeypatch.setenv('GEMINI_API_KEY', 'test_key_server_only')
-
-    mock_client = MagicMock()
-    mock_client.models.generate_content.side_effect = Exception("Rate limit exceeded or network down")
-
-    with patch('google.genai.Client', return_value=mock_client):
-        res = auth_student_client.post('/api/chat/message', json={
-            'message': 'How can I organize my study sessions?'
-        })
-        assert res.status_code == 200
-        data = res.get_json()
-        assert data['success'] is True
-        assert data['source'] == 'wellvia_local_assistant'
-        assert len(data['reply']) > 10

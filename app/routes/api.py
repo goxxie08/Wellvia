@@ -1,5 +1,5 @@
 import random
-from datetime import date
+from datetime import date, timedelta
 from functools import wraps
 from flask import Blueprint, request, jsonify, session
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -212,18 +212,24 @@ def api_student_dashboard():
     tips = execute_query("SELECT * FROM wellness_tips WHERE is_active = 1", fetchall=True)
     daily_tip = random.choice(tips) if tips else None
 
-    today_str = date.today().strftime('%Y-%m-%d')
+    today = date.today()
+    today_str = today.strftime('%Y-%m-%d')
+    week_start_str = (today - timedelta(days=6)).strftime('%Y-%m-%d')
     challenges = execute_query(
         """
         SELECT c.*, 
                CASE WHEN cp.id IS NOT NULL AND cp.is_completed = 1 THEN 1 ELSE 0 END as is_completed
         FROM challenges c
         LEFT JOIN challenge_progress cp ON c.id = cp.challenge_id 
-             AND cp.user_id = %s AND cp.start_date = %s
+             AND cp.user_id = %s 
+             AND (
+                 (c.challenge_type = 'daily' AND (cp.start_date = %s OR cp.completion_date = %s))
+                 OR (c.challenge_type = 'weekly' AND (cp.start_date >= %s OR cp.completion_date >= %s))
+             )
         WHERE c.is_active = 1 AND c.challenge_type = 'daily'
         LIMIT 3
         """,
-        (user_id, today_str),
+        (user_id, today_str, today_str, week_start_str, week_start_str),
         fetchall=True
     ) or []
 
@@ -330,10 +336,32 @@ def api_body_metrics():
             commit=True
         )
 
+        updated_user = execute_query("SELECT * FROM users WHERE id = %s", (user_id,), fetchone=True)
+        assessment = get_integrated_health_assessment(
+            height, weight, gender=gender, lifestyle_data=lifestyle_payload if data.get('include_lifestyle') else None
+        )
+        if assessment:
+            assessment['ml_health_status'] = ml_health_status
+            assessment['ml_lifestyle_risk'] = ml_lifestyle_risk
+            assessment['category'] = bmi_res['category']
+            assessment['standard_category'] = bmi_res['category']
+            assessment['health_tip'] = bmi_res['health_tip']
+            assessment['standard_tip'] = bmi_res['health_tip']
+            assessment['bmi_info'] = bmi_res
+
+        bmi_history = execute_query(
+            "SELECT * FROM bmi_history WHERE user_id = %s ORDER BY recorded_at DESC LIMIT 10",
+            (user_id,),
+            fetchall=True
+        ) or []
+
         return jsonify({
             'success': True,
             'message': f"Metrics saved successfully! BMI: {bmi_res['bmi_formatted']} ({bmi_res['category']})",
+            'user': updated_user,
             'bmi_info': bmi_res,
+            'assessment': assessment,
+            'bmi_history': bmi_history,
             'ml_health_status': ml_health_status,
             'ml_lifestyle_risk': ml_lifestyle_risk,
             'ml_details': ml_status
@@ -344,6 +372,20 @@ def api_body_metrics():
     assessment = get_integrated_health_assessment(
         user.get('height'), user.get('weight'), gender=(user.get('gender') or 'Female')
     ) if bmi_info else None
+
+    if assessment and user:
+        assessment['ml_health_status'] = user.get('ml_health_status')
+        assessment['ml_lifestyle_risk'] = user.get('ml_lifestyle_risk')
+        assessment['category'] = assessment.get('standard_category')
+        assessment['health_tip'] = assessment.get('standard_tip')
+        assessment['bmi_info'] = bmi_info
+        if user.get('ml_lifestyle_risk') and not assessment.get('ml_lifestyle'):
+            assessment['ml_lifestyle'] = {
+                'success': True,
+                'predicted_label': user['ml_lifestyle_risk'],
+                'risk_level': 'Elevated' if any(w in str(user['ml_lifestyle_risk']) for w in ['Obesity', 'Overweight', 'High']) else 'Normal',
+                'explanation': f"Multi-factor lifestyle assessment indicates {user['ml_lifestyle_risk']} risk profile based on recorded habits."
+            }
 
     bmi_history = execute_query(
         "SELECT * FROM bmi_history WHERE user_id = %s ORDER BY recorded_at DESC LIMIT 10",
@@ -379,10 +421,12 @@ def api_log_wellness():
         return jsonify({'success': False, 'errors': errors, 'error': errors[0]}), 400
 
     result = log_daily_wellness(user_id, data)
+    today_record = get_today_record(user_id)
     return jsonify({
         'success': True,
         'message': 'Daily wellness metrics saved successfully!',
-        'result': result
+        'result': result,
+        'record': today_record
     }), 200
 
 @api_bp.route('/student/wellness/history', methods=['GET'])
@@ -422,18 +466,24 @@ def api_student_tips():
 def api_student_challenges():
     """Returns all active challenges along with student completion status."""
     user_id = session['user_id']
-    today_str = date.today().strftime('%Y-%m-%d')
+    today = date.today()
+    today_str = today.strftime('%Y-%m-%d')
+    week_start_str = (today - timedelta(days=6)).strftime('%Y-%m-%d')
     active_challenges = execute_query(
         """
         SELECT c.*, 
                CASE WHEN cp.id IS NOT NULL AND cp.is_completed = 1 THEN 1 ELSE 0 END as is_completed
         FROM challenges c
         LEFT JOIN challenge_progress cp ON c.id = cp.challenge_id 
-             AND cp.user_id = %s AND cp.start_date = %s
+             AND cp.user_id = %s 
+             AND (
+                 (c.challenge_type = 'daily' AND (cp.start_date = %s OR cp.completion_date = %s))
+                 OR (c.challenge_type = 'weekly' AND (cp.start_date >= %s OR cp.completion_date >= %s))
+             )
         WHERE c.is_active = 1
         ORDER BY c.challenge_type ASC, c.id DESC
         """,
-        (user_id, today_str),
+        (user_id, today_str, today_str, week_start_str, week_start_str),
         fetchall=True
     ) or []
 
@@ -449,15 +499,26 @@ def api_complete_challenge(challenge_id):
     if not ch:
         return jsonify({'success': False, 'error': 'Challenge not found or inactive.'}), 404
 
-    today_str = date.today().strftime('%Y-%m-%d')
-    existing = execute_query(
-        "SELECT id FROM challenge_progress WHERE user_id = %s AND challenge_id = %s AND start_date = %s",
-        (user_id, challenge_id, today_str),
-        fetchone=True
-    )
+    today = date.today()
+    today_str = today.strftime('%Y-%m-%d')
+    week_start_str = (today - timedelta(days=6)).strftime('%Y-%m-%d')
 
-    if existing:
-        return jsonify({'success': False, 'error': 'You have already completed this challenge today!'}), 400
+    if ch['challenge_type'] == 'weekly':
+        existing = execute_query(
+            "SELECT id FROM challenge_progress WHERE user_id = %s AND challenge_id = %s AND (start_date >= %s OR completion_date >= %s) AND is_completed = 1",
+            (user_id, challenge_id, week_start_str, week_start_str),
+            fetchone=True
+        )
+        if existing:
+            return jsonify({'success': False, 'error': 'You have already completed this weekly challenge this week!'}), 400
+    else:
+        existing = execute_query(
+            "SELECT id FROM challenge_progress WHERE user_id = %s AND challenge_id = %s AND (start_date = %s OR completion_date = %s) AND is_completed = 1",
+            (user_id, challenge_id, today_str, today_str),
+            fetchone=True
+        )
+        if existing:
+            return jsonify({'success': False, 'error': 'You have already completed this challenge today!'}), 400
 
     execute_query(
         "INSERT INTO challenge_progress (user_id, challenge_id, start_date, completion_date, is_completed) VALUES (%s, %s, %s, %s, 1)",
@@ -492,7 +553,11 @@ def api_student_progress():
         'success': True,
         'days': days,
         'chart_data': chart_data,
-        'insights': insights
+        'insights': insights,
+        'overview': chart_data.get('overview'),
+        'analysis': chart_data.get('analysis'),
+        'areas_to_improve': chart_data.get('areas_to_improve'),
+        'recent_logs': chart_data.get('recent_logs', [])
     }), 200
 
 @api_bp.route('/student/profile', methods=['GET'])

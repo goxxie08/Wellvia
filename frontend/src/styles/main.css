@@ -315,68 +315,44 @@ body {
 .badge-rose { background: rgba(244, 63, 94, 0.15); color: var(--rose-primary); border: 1px solid rgba(244, 63, 94, 0.3); }
 .badge-emerald { background: rgba(16, 185, 129, 0.15); color: var(--emerald-primary); border: 1px solid rgba(16, 185, 129, 0.3); }
 
-/* Mascot Barnaby Widget */
-.mascot-container {
+/* Floating AI Chatbot Action Button */
+.floating-chat-btn {
   position: fixed;
   bottom: 24px;
   right: 24px;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-
-.mascot-bubble {
-  background: rgba(15, 23, 42, 0.95);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(20, 184, 166, 0.4);
-  border-radius: var(--radius-md);
-  padding: 0.9rem 1.2rem;
-  max-width: 320px;
-  margin-bottom: 0.75rem;
-  color: var(--text-primary);
-  font-size: 0.88rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-  animation: bubblePop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  position: relative;
-}
-
-.mascot-bubble::after {
-  content: '';
-  position: absolute;
-  bottom: -8px;
-  right: 28px;
-  width: 16px;
-  height: 16px;
-  background: rgba(15, 23, 42, 0.95);
-  border-right: 1px solid rgba(20, 184, 166, 0.4);
-  border-bottom: 1px solid rgba(20, 184, 166, 0.4);
-  transform: rotate(45deg);
-}
-
-.mascot-button {
-  background: linear-gradient(135deg, #1e293b, #0f172a);
-  border: 2px solid var(--teal-primary);
-  width: 58px;
-  height: 58px;
+  z-index: 990;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal-primary), var(--cyan-primary));
+  color: #ffffff;
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.8rem;
   cursor: pointer;
-  box-shadow: 0 8px 25px var(--teal-glow);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 6px 20px rgba(20, 184, 166, 0.4);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
 }
 
-.mascot-button:hover {
-  transform: scale(1.1) rotate(5deg);
+.floating-chat-btn:hover {
+  transform: translateY(-2px) scale(1.06);
+  box-shadow: 0 8px 25px rgba(20, 184, 166, 0.55);
 }
 
-@keyframes bubblePop {
-  0% { opacity: 0; transform: scale(0.8) translateY(10px); }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
+.floating-chat-btn:active {
+  transform: scale(0.94);
 }
+
+@media (max-width: 768px) {
+  .floating-chat-btn {
+    bottom: 20px;
+    right: 20px;
+    width: 48px;
+    height: 48px;
+  }
+}
+
 
 /* ==========================================================================
    Chatbot Floating Drawer & Components
@@ -419,9 +395,10 @@ body {
   position: fixed;
   bottom: 95px;
   right: 24px;
-  width: 390px;
-  height: 560px;
-  max-height: calc(100vh - 120px);
+  width: 410px;
+  max-width: calc(100vw - 32px);
+  height: 580px;
+  max-height: calc(100vh - 110px);
   background: rgba(15, 23, 42, 0.95);
   backdrop-filter: blur(24px);
   border: 1px solid var(--bg-card-border-glow);
@@ -494,42 +471,71 @@ body {
 }
 
 .chat-privacy-notice {
-  padding: 0.35rem 1rem;
-  background: rgba(14, 165, 233, 0.06);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  font-size: 0.68rem;
+  padding: 0.4rem 1rem;
+  background: rgba(14, 165, 233, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.7rem;
   color: var(--cyan-primary);
   text-align: center;
-  line-height: 1.3;
+  line-height: 1.35;
+  flex-shrink: 0;
+  z-index: 2;
 }
 
 .chat-messages {
   flex: 1;
-  padding: 1rem;
+  padding: 1rem 1rem 0.6rem 1rem;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  scrollbar-color: rgba(20, 184, 166, 0.3) transparent;
+  scroll-behavior: smooth;
+  box-shadow: inset 0 8px 10px -8px rgba(0, 0, 0, 0.6);
 }
 
 .chat-messages::-webkit-scrollbar {
   width: 5px;
 }
 .chat-messages::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(20, 184, 166, 0.3);
   border-radius: 10px;
 }
 
 .chat-bubble {
-  max-width: 84%;
-  padding: 0.8rem 1.05rem;
+  max-width: 86%;
+  padding: 0.85rem 1.1rem;
   border-radius: var(--radius-md);
   font-size: 0.88rem;
   line-height: 1.55;
   word-break: break-word;
   animation: fadeIn 0.25s ease-out;
+}
+
+.chat-bubble-content {
+  color: inherit;
+}
+
+.chat-msg-para {
+  margin: 0 0 0.5rem 0;
+}
+.chat-msg-para:last-child {
+  margin-bottom: 0;
+}
+
+.chat-msg-list {
+  margin: 0.35rem 0 0.5rem 1.25rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.chat-msg-list:last-child {
+  margin-bottom: 0;
+}
+.chat-msg-list li {
+  line-height: 1.5;
 }
 
 .chat-bubble.bot {
@@ -807,3 +813,18 @@ body {
 .data-table tr:hover td {
   background: rgba(255, 255, 255, 0.03);
 }
+
+/* Spinner and micro-animations */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin-icon {
+  animation: spin 0.8s linear infinite;
+}
+

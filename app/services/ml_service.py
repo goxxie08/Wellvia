@@ -210,11 +210,13 @@ def predict_health_status(gender: str, height_cm: float, weight_kg: float) -> di
         norm_gender = 'Male' if str(gender).strip().lower() in ('male', 'm', '1') else 'Female'
         h = float(height_cm)
         w = float(weight_kg)
+        bmi = round(w / ((h / 100.0) ** 2), 2)
         
         input_df = pd.DataFrame([{
             'Gender': norm_gender,
             'Height': h,
-            'Weight': w
+            'Weight': w,
+            'BMI': bmi
         }])
         
         pred_idx = int(model.predict(input_df)[0])

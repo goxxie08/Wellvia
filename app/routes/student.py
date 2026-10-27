@@ -107,6 +107,8 @@ def body_metrics():
         if ml_health_status:
             flash_msg += f" | ML Health Status: {ml_health_status}"
         flash(flash_msg, "success")
+        if request.args.get('legacy') == '1':
+            return redirect(url_for('student.dashboard', legacy=1))
         return redirect(url_for('student.dashboard'))
         
     bmi_info = calculate_bmi(user.get('height'), user.get('weight')) if user and user.get('height') and user.get('weight') else None
@@ -317,7 +319,15 @@ def progress():
     user_id = session['user_id']
     days = int(request.args.get('days', 7))
     chart_data, insights = get_student_analytics_data(user_id, days=days)
-    return render_template('progress.html', chart_data=chart_data, insights=insights, current_days=days)
+    return render_template(
+        'progress.html',
+        chart_data=chart_data,
+        insights=insights,
+        overview=chart_data.get('overview'),
+        analysis=chart_data.get('analysis'),
+        areas_to_improve=chart_data.get('areas_to_improve'),
+        current_days=days
+    )
 
 @student_bp.route('/api/my-charts')
 @student_required

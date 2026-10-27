@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
 import { Award, CheckCircle, Clock, Flame, Sparkles, AlertCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export function ChallengesPage() {
+  const { refreshUser } = useAuth();
   const [challenges, setChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [completingId, setCompletingId] = useState(null);
@@ -41,6 +43,9 @@ export function ChallengesPage() {
           spread: 70,
           origin: { y: 0.6 }
         });
+        if (refreshUser) {
+          await refreshUser();
+        }
         await fetchChallenges();
       }
     } catch (err) {

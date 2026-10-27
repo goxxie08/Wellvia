@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
 import { 
   Moon, 
   Droplet, 
@@ -15,6 +16,7 @@ import {
 import confetti from 'canvas-confetti';
 
 export function WellnessLogPage() {
+  const { refreshUser } = useAuth();
   const [form, setForm] = useState({
     sleep_hours: '',
     sleep_quality: '3',
@@ -37,29 +39,34 @@ export function WellnessLogPage() {
 
   const navigate = useNavigate();
 
+  const populateFromRecord = (r) => {
+    if (!r) return;
+    setForm({
+      sleep_hours: r.sleep_hours != null ? String(r.sleep_hours) : '',
+      sleep_quality: r.sleep_quality != null ? String(r.sleep_quality) : '3',
+      water_glasses: r.water_glasses != null ? String(r.water_glasses) : '',
+      exercise_type: r.exercise_type || 'Walk',
+      exercise_duration: r.exercise_duration != null ? String(r.exercise_duration) : '',
+      exercise_intensity: r.exercise_intensity || 'Medium',
+      mood: r.mood != null ? String(r.mood) : '4',
+      stress_level: r.stress_level != null ? String(r.stress_level) : '2',
+      study_hours: r.study_hours != null ? String(r.study_hours) : '',
+      study_sessions: r.study_sessions != null ? String(r.study_sessions) : '1',
+      study_subject: r.study_subject || ''
+    });
+  };
+
   useEffect(() => {
     const fetchToday = async () => {
       try {
         setLoading(true);
         const res = await api.getTodayWellness();
         if (res.success && res.record) {
-          const r = res.record;
-          setForm({
-            sleep_hours: r.sleep_hours != null ? String(r.sleep_hours) : '',
-            sleep_quality: r.sleep_quality != null ? String(r.sleep_quality) : '3',
-            water_glasses: r.water_glasses != null ? String(r.water_glasses) : '',
-            exercise_type: r.exercise_type || 'Walk',
-            exercise_duration: r.exercise_duration != null ? String(r.exercise_duration) : '',
-            exercise_intensity: r.exercise_intensity || 'Medium',
-            mood: r.mood != null ? String(r.mood) : '4',
-            stress_level: r.stress_level != null ? String(r.stress_level) : '2',
-            study_hours: r.study_hours != null ? String(r.study_hours) : '',
-            study_sessions: r.study_sessions != null ? String(r.study_sessions) : '1',
-            study_subject: r.study_subject || ''
-          });
+          populateFromRecord(res.record);
         }
       } catch (err) {
         console.warn('Could not load today record', err);
+        setError(err.message || 'Could not retrieve today\'s recorded metrics.');
       } finally {
         setLoading(false);
       }
@@ -83,6 +90,12 @@ export function WellnessLogPage() {
       const res = await api.logWellness(form);
       if (res.success) {
         setSuccess('Wellness habits logged successfully! +10 Points awarded.');
+        if (res.record) {
+          populateFromRecord(res.record);
+        }
+        if (refreshUser) {
+          await refreshUser();
+        }
         if (res.result && res.result.new_badges && res.result.new_badges.length > 0) {
           setNewBadges(res.result.new_badges);
           confetti({

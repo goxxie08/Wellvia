@@ -33,7 +33,7 @@
       "name": "Log Wellness",
       "short_name": "Log",
       "description": "Log daily sleep, hydration, exercise & mood",
-      "url": "/wellness/log",
+      "url": "/wellness",
       "icons": [{ "src": "/static/img/icon-192.png", "sizes": "192x192" }]
     },
     {

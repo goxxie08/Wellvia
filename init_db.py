@@ -208,6 +208,25 @@ def init_sqlite():
         )
         print("Default admin user created: admin@wellvia.edu / Admin@123")
 
+    # Seed Demo Student account
+    student_email = "student@wellvia.edu"
+    student_username = "Kelly"
+    student_hash = generate_password_hash("Password123")
+    
+    cursor.execute("SELECT id FROM users WHERE email = ? OR username = ?", (student_email, student_username))
+    student_row = cursor.fetchone()
+    if not student_row:
+        cursor.execute(
+            "INSERT INTO users (username, email, password_hash, role, total_points, height, weight, is_active) VALUES (?, ?, ?, 'student', 890, 168.0, 62.0, 1)",
+            (student_username, student_email, student_hash)
+        )
+        print("Default student user created: Kelly (student@wellvia.edu) / Password123")
+    else:
+        cursor.execute(
+            "UPDATE users SET password_hash = ?, email = ? WHERE id = ?",
+            (student_hash, student_email, student_row[0])
+        )
+
     conn.commit()
     conn.close()
     print("SQLite database initialized successfully!")
@@ -270,6 +289,26 @@ def init_mysql():
             cursor.execute(
                 "INSERT INTO users (username, email, password_hash, role, total_points, is_active) VALUES (%s, %s, %s, 'admin', 0, 1)",
                 (admin_username, admin_email, admin_hash)
+            )
+
+        # Seed Demo Student account
+        student_email = "student@wellvia.edu"
+        student_username = "Kelly"
+        student_hash = generate_password_hash("Password123")
+
+        cursor.execute("SELECT id FROM users WHERE email = %s OR username = %s", (student_email, student_username))
+        student_row = cursor.fetchone()
+        if not student_row:
+            cursor.execute(
+                "INSERT INTO users (username, email, password_hash, role, total_points, height, weight, is_active) VALUES (%s, %s, %s, 'student', 890, 168.0, 62.0, 1)",
+                (student_username, student_email, student_hash)
+            )
+            print("Default student user created: Kelly (student@wellvia.edu) / Password123")
+        else:
+            student_id = student_row['id'] if isinstance(student_row, dict) else student_row[0]
+            cursor.execute(
+                "UPDATE users SET password_hash = %s, email = %s WHERE id = %s",
+                (student_hash, student_email, student_id)
             )
 
     conn.close()

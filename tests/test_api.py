@@ -45,6 +45,48 @@ def test_api_login_and_authenticated_me(client):
     res_me2 = client.get('/api/auth/me')
     assert res_me2.get_json()['authenticated'] is False
 
+def test_api_demo_student_login(client):
+    # 1. Login with demo student username 'Kelly'
+    res = client.post('/api/auth/login', json={
+        'login_input': 'Kelly',
+        'password': 'Password123'
+    })
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data['success'] is True
+    assert data['user']['username'] == 'Kelly'
+    assert data['user']['role'] == 'student'
+    assert data['redirect'] == '/dashboard'
+
+    # 2. Check /api/auth/me returns authenticated student
+    res_me = client.get('/api/auth/me')
+    assert res_me.status_code == 200
+    data_me = res_me.get_json()
+    assert data_me['authenticated'] is True
+    assert data_me['user']['username'] == 'Kelly'
+    assert data_me['user']['role'] == 'student'
+
+    # 3. Check /api/student/dashboard returns student's dashboard
+    res_dash = client.get('/api/student/dashboard')
+    assert res_dash.status_code == 200
+    assert res_dash.get_json()['success'] is True
+
+    # 4. Logout
+    client.post('/api/auth/logout')
+
+    # 5. Login with demo student email 'student@wellvia.edu'
+    res_email = client.post('/api/auth/login', json={
+        'login_input': 'student@wellvia.edu',
+        'password': 'Password123'
+    })
+    assert res_email.status_code == 200
+    assert res_email.get_json()['success'] is True
+    assert res_email.get_json()['user']['username'] == 'Kelly'
+
+    # Logout to clean session
+    client.post('/api/auth/logout')
+
+
 def test_api_student_dashboard_and_metrics(client):
     with client.session_transaction() as sess:
         sess['user_id'] = 14  # Kelly from seed DB

@@ -32,7 +32,19 @@ def get_db_config():
 
 def get_sqlite_db():
     """Create SQLite connection with dictionary row factory."""
-    db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'wellness.db')
+    db_path = None
+    if current_app:
+        db_path = current_app.config.get('SQLITE_DB') or current_app.config.get('DATABASE')
+    if not db_path:
+        db_path = os.environ.get('SQLITE_DB')
+    if not db_path:
+        db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'wellness.db')
+    
+    # Ensure directory exists if custom path provided
+    db_dir = os.path.dirname(os.path.abspath(db_path))
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir, exist_ok=True)
+        
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
@@ -79,9 +91,18 @@ def execute_query(query, params=(), fetchone=False, fetchall=False, commit=False
     
     if db_type == 'sqlite':
         sql = query.replace('%s', '?')
+        import datetime
+        adapted_params = []
+        for p in params:
+            if isinstance(p, datetime.date) and not isinstance(p, datetime.datetime):
+                adapted_params.append(p.strftime('%Y-%m-%d'))
+            elif isinstance(p, datetime.datetime):
+                adapted_params.append(p.strftime('%Y-%m-%d %H:%M:%S'))
+            else:
+                adapted_params.append(p)
         try:
             cursor = conn.cursor()
-            cursor.execute(sql, params)
+            cursor.execute(sql, adapted_params)
             if commit:
                 conn.commit()
                 res = cursor.lastrowid if cursor.lastrowid else cursor.rowcount

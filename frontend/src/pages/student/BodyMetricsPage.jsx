@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/client';
-import { Scale, Activity, Heart, AlertCircle, CheckCircle, ChevronDown, ChevronUp, History, Info } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { Scale, AlertCircle, CheckCircle, ChevronDown, ChevronUp, History, Info } from 'lucide-react';
 
 export function BodyMetricsPage() {
+  const { user: authUser, refreshUser } = useAuth();
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
   const [gender, setGender] = useState('Female');
@@ -28,7 +30,35 @@ export function BodyMetricsPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [assessment, setAssessment] = useState(null);
+  const [userData, setUserData] = useState(null);
   const [bmiHistory, setBmiHistory] = useState([]);
+
+  const getStorageKey = () => `wellvia_lifestyle_${authUser?.id || 'default'}`;
+
+  const loadSavedLifestyle = () => {
+    try {
+      const saved = localStorage.getItem(getStorageKey());
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.Age) setAge(parsed.Age);
+        if (parsed.family_history_with_overweight) setFamilyHistory(parsed.family_history_with_overweight);
+        if (parsed.FAVC) setFavc(parsed.FAVC);
+        if (parsed.FCVC != null) setFcvc(parsed.FCVC);
+        if (parsed.NCP != null) setNcp(parsed.NCP);
+        if (parsed.CAEC) setCaec(parsed.CAEC);
+        if (parsed.SMOKE) setSmoke(parsed.SMOKE);
+        if (parsed.CH2O != null) setCh2o(parsed.CH2O);
+        if (parsed.SCC) setScc(parsed.SCC);
+        if (parsed.FAF != null) setFaf(parsed.FAF);
+        if (parsed.TUE != null) setTue(parsed.TUE);
+        if (parsed.CALC) setCalc(parsed.CALC);
+        if (parsed.MTRANS) setMtrans(parsed.MTRANS);
+        setIncludeLifestyle(true);
+      }
+    } catch (e) {
+      console.warn('Could not parse saved lifestyle inputs', e);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -36,9 +66,13 @@ export function BodyMetricsPage() {
       const res = await api.getBodyMetrics();
       if (res.success) {
         if (res.user) {
+          setUserData(res.user);
           if (res.user.height) setHeight(res.user.height);
           if (res.user.weight) setWeight(res.user.weight);
           if (res.user.gender) setGender(res.user.gender);
+          if (res.user.ml_lifestyle_risk) {
+            loadSavedLifestyle();
+          }
         }
         if (res.assessment) setAssessment(res.assessment);
         if (res.bmi_history) setBmiHistory(res.bmi_history);
@@ -52,7 +86,7 @@ export function BodyMetricsPage() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [authUser?.id]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,31 +95,47 @@ export function BodyMetricsPage() {
     setSaving(true);
 
     try {
+      const lifestylePayload = includeLifestyle ? {
+        Age: parseFloat(age),
+        family_history_with_overweight: familyHistory,
+        FAVC: favc,
+        FCVC: parseFloat(fcvc),
+        NCP: parseFloat(ncp),
+        CAEC: caec,
+        SMOKE: smoke,
+        CH2O: parseFloat(ch2o),
+        SCC: scc,
+        FAF: parseFloat(faf),
+        TUE: parseFloat(tue),
+        CALC: calc,
+        MTRANS: mtrans
+      } : null;
+
       const payload = {
         height: parseFloat(height),
         weight: parseFloat(weight),
         gender,
         include_lifestyle: includeLifestyle,
-        lifestyle_payload: includeLifestyle ? {
-          Age: parseFloat(age),
-          family_history_with_overweight: familyHistory,
-          FAVC: favc,
-          FCVC: parseFloat(fcvc),
-          NCP: parseFloat(ncp),
-          CAEC: caec,
-          SMOKE: smoke,
-          CH2O: parseFloat(ch2o),
-          SCC: scc,
-          FAF: parseFloat(faf),
-          TUE: parseFloat(tue),
-          CALC: calc,
-          MTRANS: mtrans
-        } : null
+        lifestyle_payload: lifestylePayload
       };
+
+      if (includeLifestyle && lifestylePayload) {
+        try {
+          localStorage.setItem(getStorageKey(), JSON.stringify(lifestylePayload));
+        } catch (e) {
+          console.warn('Could not cache lifestyle answers', e);
+        }
+      }
 
       const res = await api.saveBodyMetrics(payload);
       if (res.success) {
         setSuccess(res.message);
+        if (res.assessment) setAssessment(res.assessment);
+        if (res.user) setUserData(res.user);
+        if (res.bmi_history) setBmiHistory(res.bmi_history);
+        if (refreshUser) {
+          await refreshUser();
+        }
         await fetchData();
       }
     } catch (err) {
@@ -267,6 +317,40 @@ export function BodyMetricsPage() {
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                     <div>
+                      <label className="form-label">Vegetable Consumption (FCVC)</label>
+                      <select className="form-select" value={fcvc} onChange={(e) => setFcvc(e.target.value)}>
+                        <option value="1.0">Rarely / Never</option>
+                        <option value="2.0">Sometimes</option>
+                        <option value="3.0">Always / With Every Meal</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="form-label">Daily Main Meals (NCP)</label>
+                      <input type="number" min="1" max="4" step="1" className="form-input" value={ncp} onChange={(e) => setNcp(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div>
+                      <label className="form-label">Food Between Meals (CAEC)</label>
+                      <select className="form-select" value={caec} onChange={(e) => setCaec(e.target.value)}>
+                        <option value="no">No snacking</option>
+                        <option value="Sometimes">Sometimes</option>
+                        <option value="Frequently">Frequently</option>
+                        <option value="Always">Always</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="form-label">Monitors Calories (SCC)</label>
+                      <select className="form-select" value={scc} onChange={(e) => setScc(e.target.value)}>
+                        <option value="no">No</option>
+                        <option value="yes">Yes</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div>
                       <label className="form-label">Physical Activity Frequency (FAF)</label>
                       <select className="form-select" value={faf} onChange={(e) => setFaf(e.target.value)}>
                         <option value="0.0">No activity</option>
@@ -275,6 +359,35 @@ export function BodyMetricsPage() {
                         <option value="3.0">4+ days/week</option>
                       </select>
                     </div>
+                    <div>
+                      <label className="form-label">Recreational Screen Time (TUE)</label>
+                      <select className="form-select" value={tue} onChange={(e) => setTue(e.target.value)}>
+                        <option value="0.0">0 to 2 hours (Low)</option>
+                        <option value="1.0">3 to 5 hours (Medium)</option>
+                        <option value="2.0">5+ hours (High)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div>
+                      <label className="form-label">Smokes Tobacco (SMOKE)</label>
+                      <select className="form-select" value={smoke} onChange={(e) => setSmoke(e.target.value)}>
+                        <option value="no">No</option>
+                        <option value="yes">Yes</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="form-label">Alcohol Consumption (CALC)</label>
+                      <select className="form-select" value={calc} onChange={(e) => setCalc(e.target.value)}>
+                        <option value="no">Never / None</option>
+                        <option value="Sometimes">Sometimes</option>
+                        <option value="Frequently">Frequently</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
                     <div>
                       <label className="form-label">Primary Transportation (MTRANS)</label>
                       <select className="form-select" value={mtrans} onChange={(e) => setMtrans(e.target.value)}>
@@ -308,15 +421,15 @@ export function BodyMetricsPage() {
               Integrated ML Assessment
             </h2>
 
-            {assessment && assessment.bmi ? (
+            {assessment && (assessment.bmi != null || assessment.bmi_formatted) ? (
               <div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', marginBottom: '1rem' }}>
                   <div style={{ fontSize: '2.75rem', fontWeight: 800, color: 'var(--teal-primary)', lineHeight: 1 }}>
-                    {assessment.bmi.bmi_formatted}
+                    {assessment.bmi_formatted || (typeof assessment.bmi === 'object' ? assessment.bmi?.bmi_formatted : Number(assessment.bmi).toFixed(2))}
                   </div>
                   <div>
                     <span className="badge badge-teal" style={{ fontSize: '0.85rem' }}>
-                      {assessment.bmi.category}
+                      {assessment.standard_category || assessment.category || (typeof assessment.bmi === 'object' ? assessment.bmi?.category : '') || userData?.bmi_category || 'Normal weight'}
                     </span>
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                       Prime Healthy Range: 18.5 – 24.9
@@ -324,8 +437,15 @@ export function BodyMetricsPage() {
                   </div>
                 </div>
 
-                {/* ML Health Classifier Box */}
-                {assessment.ml_health_status && (
+                {/* Standard Health Tip */}
+                {(assessment.standard_tip || assessment.health_tip || (typeof assessment.bmi === 'object' ? assessment.bmi?.health_tip : null)) && (
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '1rem', fontStyle: 'italic' }}>
+                    "{assessment.standard_tip || assessment.health_tip || assessment.bmi?.health_tip}"
+                  </p>
+                )}
+
+                {/* ML Model 1 Health Classifier Box */}
+                {(assessment.ml_status?.predicted_label || assessment.ml_health_status || userData?.ml_health_status) && (
                   <div style={{
                     background: 'rgba(20, 184, 166, 0.1)',
                     border: '1px solid rgba(20, 184, 166, 0.25)',
@@ -333,17 +453,29 @@ export function BodyMetricsPage() {
                     padding: '0.85rem',
                     marginBottom: '0.85rem'
                   }}>
-                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--teal-primary)', fontWeight: 600 }}>
-                      ML Model 1: Body Metrics Health Status
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--teal-primary)', fontWeight: 600 }}>
+                        ML Model 1: Body Metrics Health Status
+                      </div>
+                      {assessment.ml_status?.confidence && (
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          {assessment.ml_status.confidence}% confidence
+                        </span>
+                      )}
                     </div>
                     <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff', marginTop: '2px' }}>
-                      {assessment.ml_health_status.predicted_label}
+                      {assessment.ml_status?.predicted_label || assessment.ml_health_status || userData?.ml_health_status}
                     </div>
+                    {assessment.ml_status?.explanation && (
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                        {assessment.ml_status.explanation}
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* ML Lifestyle Risk Box */}
-                {assessment.ml_lifestyle_risk && (
+                {/* ML Model 2 Lifestyle Risk Box */}
+                {(assessment.ml_lifestyle?.predicted_label || assessment.ml_lifestyle_risk || userData?.ml_lifestyle_risk) && (
                   <div style={{
                     background: 'rgba(139, 92, 246, 0.1)',
                     border: '1px solid rgba(139, 92, 246, 0.25)',
@@ -351,23 +483,36 @@ export function BodyMetricsPage() {
                     padding: '0.85rem',
                     marginBottom: '0.85rem'
                   }}>
-                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--purple-primary)', fontWeight: 600 }}>
-                      ML Model 2: Multi-Factor Lifestyle Risk
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--purple-primary)', fontWeight: 600 }}>
+                        ML Model 2: Multi-Factor Lifestyle Risk
+                      </div>
+                      {assessment.ml_lifestyle?.risk_level && (
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          {assessment.ml_lifestyle.risk_level}
+                        </span>
+                      )}
                     </div>
                     <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff', marginTop: '2px' }}>
-                      {assessment.ml_lifestyle_risk.predicted_label}
+                      {assessment.ml_lifestyle?.predicted_label || assessment.ml_lifestyle_risk || userData?.ml_lifestyle_risk}
                     </div>
+                    {assessment.ml_lifestyle?.explanation && (
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                        {assessment.ml_lifestyle.explanation}
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* Suggestions */}
-                {assessment.suggestions && assessment.suggestions.length > 0 && (
+                {/* Suggestions / Personalized Action Plan */}
+                {((assessment.ml_status?.suggestions && assessment.ml_status.suggestions.length > 0) ||
+                  (assessment.personalized_plan?.daily_tips && assessment.personalized_plan.daily_tips.length > 0)) && (
                   <div style={{ marginTop: '1rem' }}>
                     <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
                       Personalized Habit Guidance:
                     </div>
                     <ul style={{ paddingLeft: '1.25rem', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                      {assessment.suggestions.map((s, idx) => (
+                      {(assessment.ml_status?.suggestions || assessment.personalized_plan?.daily_tips || []).map((s, idx) => (
                         <li key={idx}>{s}</li>
                       ))}
                     </ul>

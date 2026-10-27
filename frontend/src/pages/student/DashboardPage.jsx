@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
 import { 
   Activity, 
   Flame, 
@@ -14,24 +15,29 @@ import {
   Award, 
   Scale, 
   PlusCircle, 
-  Clock 
+  Clock,
+  AlertCircle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export function DashboardPage() {
+  const { refreshUser } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [completingId, setCompletingId] = useState(null);
+  const [error, setError] = useState('');
 
   const fetchDashboard = async () => {
     try {
       setLoading(true);
+      setError('');
       const res = await api.getDashboard();
       if (res.success) {
         setData(res);
       }
     } catch (err) {
       console.error('Failed to load student dashboard:', err);
+      setError(err.message || 'Failed to load your wellness dashboard.');
     } finally {
       setLoading(false);
     }
@@ -51,6 +57,9 @@ export function DashboardPage() {
           spread: 60,
           origin: { y: 0.7 }
         });
+        if (refreshUser) {
+          await refreshUser();
+        }
         await fetchDashboard();
       }
     } catch (err) {
@@ -87,6 +96,24 @@ export function DashboardPage() {
 
   return (
     <div>
+      {error && (
+        <div style={{
+          background: 'rgba(239, 68, 68, 0.12)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '0.85rem 1rem',
+          color: '#fca5a5',
+          fontSize: '0.9rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          marginBottom: '1.5rem'
+        }}>
+          <AlertCircle size={18} />
+          <span>{error}</span>
+        </div>
+      )}
+
       {/* Welcome & Streak Banner */}
       <div style={{
         display: 'flex',
